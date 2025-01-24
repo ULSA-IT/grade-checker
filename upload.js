@@ -1,15 +1,10 @@
-const fileUpload = document.getElementById('fileUpload');
-
 const tableContainer = document.getElementById('tableContainer');
 const summaryStats = document.getElementById('summaryStats');
 
-// getElementById first, then addEventListener
-if (fileUpload) {
-    console.log('fileUpload found');
+document.addEventListener('DOMContentLoaded', () => {
+    const fileUpload = document.getElementById('fileUpload');
     fileUpload.addEventListener('change', handleFileUpload);
-} else {
-    console.error('fileUpload not found');
-}
+});
 
 function handleFileUpload(e) {
     const file = e.target.files[0];
