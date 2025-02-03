@@ -1,5 +1,6 @@
 const tableContainer = document.getElementById('tableContainer');
 const summaryStats = document.getElementById('summaryStats');
+let currentGrades = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     const fileUpload = document.getElementById('fileUpload');
@@ -15,11 +16,13 @@ function handleFileUpload(e) {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        currentGrades = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
         renderTable(jsonData);
         calculateSummaryStats(jsonData);
+        document.getElementById('improvementSection').style.display = 'block';
     };
-
+    
     reader.readAsBinaryString(file);
 }
 
@@ -35,6 +38,9 @@ function renderTable(data) {
         const th = document.createElement('th');
         th.textContent = header;
         th.className = 'px-6 py-3';
+        //add style to the header
+        th.style.fontWeight = 'bold';
+        th.style.textAlign = 'left';
         headerRow.appendChild(th);
     });
 
@@ -61,7 +67,6 @@ function renderTable(data) {
 
 function calculateSummaryStats(data) {
     const grades = data.slice(1);
-    console.log(grades);
     const stats = grades.reduce((acc, [index, course, credits, grade10, grade4, letterGrade]) => {
         acc.totalCredits += credits || 0;
         acc.weightedSumGrade10 += (grade10 || 0) * (credits || 0);
@@ -86,4 +91,62 @@ function calculateSummaryStats(data) {
             <p class="text-2xl font-bold text-blue-600">${stats.averageGrade4}</p>
         </div>
     `;
+}
+
+function calculateImprovements() {
+    const targetGpa = parseFloat(document.getElementById('targetGpa').value);
+    const maxSubjects = parseInt(document.getElementById('maxSubjects').value);
+
+    const grades = currentGrades.slice(1);
+    console.log(grades);
+    const totalCredits = grades.reduce((sum, row) => sum + (parseFloat(row[2]) || 0), 0);
+    const currentGpa = grades.reduce((sum, row) => {
+        const credits = parseFloat(row[2]) || 0;
+        const grade = parseFloat(row[4]) || 0; // Assuming grade4 is at index 4
+        return sum + (credits * grade);
+    }, 0) / totalCredits;
+
+    // Sort subjects by potential improvement impact
+    const potentialImprovements = grades
+        .map(row => {
+            const course = row[1];
+            const credits = parseFloat(row[2]) || 0;
+            const currentGrade = parseFloat(row[4]) || 0; // Assuming grade4 is at index 4
+            const potentialImprovement = (4.0 - currentGrade) * credits;
+            return {
+                course,
+                credits,
+                currentGrade,
+                improvement: potentialImprovement,
+                newGpa: ((currentGpa * totalCredits) + potentialImprovement) / totalCredits
+            };
+        })
+        .sort((a, b) => b.improvement - a.improvement);
+
+    // Generate recommendations
+    const recommendations = potentialImprovements
+        .slice(0, maxSubjects)
+        .filter(subject => subject.newGpa > currentGpa);
+
+    const recommendationList = document.getElementById('recommendationList');
+    recommendationList.innerHTML = recommendations
+        .map(subject => `
+            <li class="recommendation-item">
+                <div><strong>${subject.course}</strong></div>
+                <div>Credits: ${subject.credits}</div>
+                <div>Current Grade: ${subject.currentGrade.toFixed(2)}</div>
+                <div class="improvement-indicator">
+                    Potential GPA after improvement: ${subject.newGpa.toFixed(2)}
+                    (+${(subject.newGpa - currentGpa).toFixed(3)})
+                </div>
+            </li>
+        `).join('');
+
+    if (recommendations.length === 0) {
+        recommendationList.innerHTML = `
+            <li class="recommendation-item" style="border-left-color: var(--warning);">
+                No subjects found that would significantly improve your GPA to reach ${targetGpa}
+            </li>
+        `;
+    }
 }
