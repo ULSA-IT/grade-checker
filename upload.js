@@ -61,11 +61,16 @@ function renderTable(data) {
 
 function calculateSummaryStats(data) {
     const grades = data.slice(1);
-    const stats = {
-        totalCredits: grades.reduce((sum, row) => sum + (row[1] || 0), 0),
-        averageGrade10: (grades.reduce((sum, row) => sum + (row[2] || 0), 0) / grades.length).toFixed(3),
-        averageGrade4: (grades.reduce((sum, row) => sum + (row[3] || 0), 0) / grades.length).toFixed(3)
-    };
+    console.log(grades);
+    const stats = grades.reduce((acc, [index, course, credits, grade10, grade4, letterGrade]) => {
+        acc.totalCredits += credits || 0;
+        acc.weightedSumGrade10 += (grade10 || 0) * (credits || 0);
+        acc.weightedSumGrade4 += (grade4 || 0) * (credits || 0);
+        return acc;
+    }, { totalCredits: 0, weightedSumGrade10: 0, weightedSumGrade4: 0 });
+    
+    stats.averageGrade10 = (stats.weightedSumGrade10 / stats.totalCredits).toFixed(3);
+    stats.averageGrade4 = (stats.weightedSumGrade4 / stats.totalCredits).toFixed(3);
 
     summaryStats.innerHTML = `
         <div class="bg-indigo-50 p-4 rounded-lg">
