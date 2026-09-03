@@ -33,7 +33,9 @@ test("đọc được workbook v2 nhiều sheet", () => {
     ["Thuộc tính", "Giá trị"],
     ["Schema version", 1],
     ["Thời điểm lấy dữ liệu", "2026-08-28T00:00:00.000Z"],
-    ["Chương trình", "Chuyên ngành chính"],
+    ["Chương trình", "Luật kinh tế · Khóa 16"],
+    ["Chuyên ngành", "Luật kinh tế"],
+    ["Hệ đào tạo", "Đại học - D16 trở về trước"],
     ["Khóa tuyển sinh", 16],
     ["Hỗ trợ quy chế", "Không"],
     ["TBC học tập hệ 4", 3.5],
@@ -44,6 +46,9 @@ test("đọc được workbook v2 nhiều sheet", () => {
 
   const payload = importer.workbookToPayload(workbook, XLSX);
   assert.equal(payload.source.mode, "workbook");
+  assert.equal(payload.source.programName, "Luật kinh tế · Khóa 16");
+  assert.equal(payload.source.majorName, "Luật kinh tế");
+  assert.equal(payload.source.educationSystem, "Đại học - D16 trở về trước");
   assert.equal(payload.source.cohort, 16);
   assert.equal(payload.source.regulationSupported, false);
   assert.equal(payload.completedCourses[0].courseCode, "HP1");

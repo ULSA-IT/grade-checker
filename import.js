@@ -105,6 +105,8 @@
       schemaVersion: parseNumber(get("Schema version")),
       fetchedAt: String(get("Thời điểm lấy dữ liệu") || new Date().toISOString()),
       programName: String(get("Chương trình") || "Dữ liệu ULSA"),
+      majorName: String(get("Chuyên ngành") || ""),
+      educationSystem: String(get("Hệ đào tạo") || ""),
       cohort,
       regulationSupported: regulationValue === undefined || regulationValue === ""
         ? (Number.isInteger(cohort) ? cohort >= 17 : null)
@@ -127,6 +129,8 @@
         mode: "workbook",
         portalHost: "sinhvien.ulsa.edu.vn",
         programName: overview.programName,
+        majorName: overview.majorName,
+        educationSystem: overview.educationSystem,
         cohort: overview.cohort,
         regulationSupported: overview.regulationSupported,
       },

@@ -2,7 +2,7 @@
 const payload = {
   schemaVersion: 1,
   fetchedAt: "2026-08-28T00:00:00.000Z",
-  source: { mode: "extension", programName: "Công nghệ thông tin · Dữ liệu kiểm thử" },
+  source: { mode: "extension", programName: "Luật kinh tế · Khóa 16", majorName: "Luật kinh tế", educationSystem: "Đại học - D16 trở về trước", cohort: 16, regulationSupported: false },
   summary: { academicGpa4: 2.56, cumulativeGpa4: 3.2, academicGpa10: 7.4, accumulatedCredits: 15 },
   completedCourses: [
     { courseCode: "CS101", name: "Cấu trúc dữ liệu", credits: 3, grade10: 8.2, grade4: 3.5, letterGrade: "B+", excludedFromGpa: false },
