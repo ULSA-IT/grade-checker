@@ -154,8 +154,10 @@
     });
     const derivedMetrics = weightedMetrics(completed);
     const portalSummary = payload.summary || {};
-    const cohortValue = Number(payload.source?.cohort);
-    const cohort = Number.isInteger(cohortValue) ? cohortValue : null;
+    const rawCohort = payload.source?.cohort;
+    const hasCohort = rawCohort !== null && rawCohort !== undefined && normalizeText(rawCohort) !== "";
+    const cohortValue = hasCohort ? Number(rawCohort) : null;
+    const cohort = Number.isInteger(cohortValue) && cohortValue > 0 ? cohortValue : null;
     const unsupportedRegulation = payload.source?.regulationSupported === false ||
       (cohort !== null && cohort <= 16);
     const supportedRegulation = payload.source?.regulationSupported === true ||

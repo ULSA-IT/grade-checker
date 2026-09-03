@@ -104,7 +104,12 @@ test("khóa D16 trở về trước được đánh dấu chưa hỗ trợ quy c
 
   assert.equal(model.cohort, 16);
   assert.equal(model.unsupportedRegulation, true);
-  assert.equal(domain.buildModel(makePayload()).regulationSupportUnknown, true);
+  const missingCohort = domain.buildModel(makePayload({
+    source: { mode: "extension", programName: "Chuyên Ngành Chính", cohort: null, regulationSupported: null },
+  }));
+  assert.equal(missingCohort.cohort, null, "cohort null không được ép thành D0");
+  assert.equal(missingCohort.unsupportedRegulation, false);
+  assert.equal(missingCohort.regulationSupportUnknown, true);
 });
 
 test("nhóm tự chọn cảnh báo thiếu, đủ và học dư độc lập với môn bắt buộc", () => {

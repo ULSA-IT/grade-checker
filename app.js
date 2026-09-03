@@ -110,6 +110,7 @@
     if (analysis.limitedMode) {
       elements.programStatus.textContent = "Thiếu dữ liệu CTĐT";
       elements.programStatus.classList.remove("is-success");
+      elements.programStatus.removeAttribute("title");
       const notice = element("div", "requirement-line");
       const copy = element("div");
       copy.append(element("strong", "", "Không thể kiểm tra điều kiện học phần"));
@@ -119,9 +120,35 @@
       return;
     }
 
-    const complete = analysis.academicallyCompleteWithPlan;
-    elements.programStatus.textContent = complete ? "Kế hoạch đã phủ đủ" : "Kế hoạch còn thiếu";
-    elements.programStatus.classList.toggle("is-success", complete);
+    const missingRequiredFromPlan = analysis.missingRequiredWithPlan.length;
+    const missingElectivesFromPlan = analysis.groups.reduce(
+      (total, group) => total + group.remainingWithPlan,
+      0,
+    );
+    const planComplete = analysis.academicallyCompleteWithPlan;
+    let statusText;
+    let explanationText;
+    if (analysis.academicallyCompleteNow) {
+      statusText = "Đã tích lũy đủ môn";
+      explanationText = "Theo dữ liệu hiện tại, bạn đã tích lũy đủ môn bắt buộc và số môn tối thiểu của từng nhóm tự chọn.";
+    } else if (planComplete) {
+      statusText = "Đã chọn đủ môn cần học";
+      explanationText = "Các môn đang chọn đã phủ đủ yêu cầu học phần. Bạn vẫn cần học đạt chúng; đây chưa phải kết luận đủ điều kiện tốt nghiệp.";
+    } else {
+      const missingTotal = missingRequiredFromPlan + missingElectivesFromPlan;
+      statusText = missingElectivesFromPlan > 0 && missingRequiredFromPlan === 0
+        ? `Cần chọn ${missingElectivesFromPlan} môn tự chọn`
+        : `Cần chọn thêm ${missingTotal} môn`;
+      const reasons = [];
+      if (missingRequiredFromPlan > 0) reasons.push(`${missingRequiredFromPlan} môn bắt buộc chưa có trong danh sách lập kế hoạch`);
+      if (missingElectivesFromPlan > 0) reasons.push(`${missingElectivesFromPlan} môn tự chọn để đủ mức tối thiểu của các nhóm`);
+      explanationText = `Kế hoạch hiện chưa đủ CTĐT: cần bổ sung ${reasons.join(" và ")}.`;
+    }
+    elements.programStatus.textContent = statusText;
+    elements.programStatus.classList.toggle("is-success", planComplete);
+    elements.programStatus.title = explanationText;
+
+    elements.requirementSummary.append(element("p", "plan-explanation", explanationText));
 
     const requirementLine = element("div", "requirement-line");
     const requirementCopy = element("div");
