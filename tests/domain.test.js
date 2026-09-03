@@ -68,6 +68,23 @@ test("TBC học tập gồm F/F+ còn TBC tích lũy chỉ gồm môn đã đạ
   assert.equal(metrics.cumulative.gpa, 4);
 });
 
+test("điểm chữ P hoàn thành học phần nhưng không tham gia GPA", () => {
+  const payload = makePayload({
+    completedCourses: [grade("QP1", "Quân sự chung", 1, null, "P", { excludedFromGpa: true })],
+    curriculumCourses: [curriculum("QP1", "Quân sự chung", 1, {
+      required: true,
+      knowledgeBlock: "Giáo dục quốc phòng - An ninh",
+    })],
+  });
+  const model = domain.buildModel(payload);
+  const requirements = domain.analyzeRequirements(model, {});
+
+  assert.equal(domain.isPassedCourse(model.completed[0]), true);
+  assert.equal(requirements.missingRequired.length, 0);
+  assert.equal(model.derivedMetrics.academic.credits, 0);
+  assert.equal(model.derivedMetrics.cumulative.credits, 0);
+});
+
 test("nhận diện F/F+ trong bảng điểm là môn học lại khi đồng thời chưa tích lũy", () => {
   const payload = makePayload({
     completedCourses: [grade("FAIL", "Môn trượt", 3, 0, "F")],

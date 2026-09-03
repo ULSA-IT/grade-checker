@@ -21,6 +21,7 @@
     "quoc phong an ninh",
     "chuan dau ra",
   ];
+  const PASSING_STATUS_LABELS = new Set(["p", "pass", "dat"]);
   const SCORE_SCALE = 10;
 
   class DomainError extends Error {
@@ -59,6 +60,7 @@
   }
 
   function isPassedCourse(course) {
+    if (PASSING_STATUS_LABELS.has(normalizeSearch(course?.letterGrade))) return true;
     return !isFailedCourse(course) && Number.isFinite(Number(course?.grade4)) && Number(course.grade4) >= 1;
   }
 
@@ -274,7 +276,7 @@
   function preparePlannerContext(model, selections) {
     const merged = mergeSelections(model, selections);
     const cumulativeCourses = model.completed.filter(
-      (course) => isPassedCourse(course) && !course.excludedFromGpa,
+      (course) => isPassedCourse(course) && !course.excludedFromGpa && Number.isFinite(Number(course.grade4)),
     );
     const currentCredits = cumulativeCourses.reduce((sum, course) => sum + Number(course.credits), 0);
     const currentPoints = cumulativeCourses.reduce(
