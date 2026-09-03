@@ -8,6 +8,8 @@
     model: null,
     selections: {},
     filter: "all",
+    customPlan: { futureScores: {}, improvements: {} },
+    customResultDirty: false,
   };
 
   const elements = {};
@@ -21,6 +23,10 @@
 
   function formatNumber(value, digits = 2) {
     return Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : "—";
+  }
+
+  function formatScore10(value) {
+    return Number.isFinite(Number(value)) ? Number(value).toFixed(1).replace(".", ",") : "—";
   }
 
   function formatDate(value) {
@@ -53,6 +59,8 @@
     state.model = domain.buildModel(payload);
     state.selections = domain.createDefaultSelections(state.model);
     state.filter = "all";
+    state.customPlan = { futureScores: {}, improvements: {} };
+    state.customResultDirty = false;
     clearHandoffHash();
     renderDashboard();
   }
@@ -95,8 +103,15 @@
     const defaultTarget = Math.min(4, Math.max(Number(cumulative) || 0, 2) + 0.1);
     elements.targetGpa.value = defaultTarget.toFixed(2);
     elements.coursePlanningPanel.hidden = model.limitedMode || model.pending.length === 0;
+    elements.customPlanResult.hidden = true;
+    elements.customPlanResult.replaceChildren();
+    elements.customPlanResult.className = "custom-plan-result";
+    elements.customPlanError.hidden = true;
+    elements.customPlanState.className = "custom-plan-state";
+    elements.customPlanState.textContent = "Điểm để trống sẽ do hệ thống tính.";
     renderRequirements();
     renderPendingCourses();
+    renderCustomPlanner();
     renderCompletedCourses();
     elements.scenarioSection.hidden = true;
     root.scrollTo({ top: 0, behavior: "smooth" });
@@ -255,6 +270,278 @@
     });
   }
 
+  function customCourseType(course, improvement = false) {
+    if (improvement) return { text: "Học cải thiện", className: "course-tag is-improvement" };
+    if (course.status === "failed") return { text: "Học lại F/F+", className: "course-tag is-failed" };
+    return { text: "Môn mới", className: "course-tag" };
+  }
+
+  function setScoreFeedback(input) {
+    const feedback = input.closest(".score-editor")?.querySelector(".score-conversion");
+    if (!feedback) return true;
+    input.setCustomValidity("");
+    input.removeAttribute("aria-invalid");
+    if (!input.value) {
+      feedback.className = "score-conversion";
+      feedback.textContent = "Để hệ thống tính";
+      return true;
+    }
+    try {
+      const grade = domain.score10ToGrade(input.value);
+      if (input.dataset.scoreType === "improvement" &&
+        grade.points <= Number(input.dataset.currentPoints)) {
+        throw new domain.DomainError(
+          "IMPROVEMENT_NOT_HIGHER",
+          `${formatScore10(input.value)} vẫn là ${grade.letter}; GPA sẽ không tăng.`,
+        );
+      }
+      feedback.className = "score-conversion is-valid";
+      feedback.textContent = `${formatScore10(grade.score10)} → ${grade.letter} → ${formatNumber(grade.points, 1)}`;
+      return true;
+    } catch (error) {
+      const message = error?.message || "Điểm dự kiến không hợp lệ.";
+      input.setCustomValidity(message);
+      input.setAttribute("aria-invalid", "true");
+      feedback.className = "score-conversion is-error";
+      feedback.textContent = message;
+      return false;
+    }
+  }
+
+  function createScoreEditor(course, type, value, disabled = false) {
+    const editor = element("label", "score-editor");
+    editor.append(element("span", "score-label", "Điểm dự kiến /10"));
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "4";
+    input.max = "10";
+    input.step = "0.1";
+    input.inputMode = "decimal";
+    input.placeholder = "Để trống";
+    input.disabled = disabled;
+    input.dataset.customScore = "true";
+    input.dataset.scoreType = type;
+    input.dataset.key = course.key;
+    if (type === "improvement") input.dataset.currentPoints = String(course.grade4);
+    input.setAttribute("aria-label", `Điểm dự kiến hệ 10 cho ${course.name}`);
+    if (value !== null && value !== undefined && String(value) !== "") input.value = String(value);
+    const feedback = element("small", "score-conversion", "Để hệ thống tính");
+    editor.append(input, feedback);
+    setScoreFeedback(input);
+    return editor;
+  }
+
+  function createCustomCourseRow(course, options = {}) {
+    const { improvement = false, selected = true, countsGpa = true } = options;
+    const row = element(
+      "article",
+      `custom-course-item${improvement ? " is-improvement" : ""}${selected ? "" : " is-disabled"}`,
+    );
+    if (improvement) {
+      const checkLabel = element("label", "custom-course-check");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = selected;
+      checkbox.dataset.improvementToggle = "true";
+      checkbox.dataset.key = course.key;
+      checkbox.setAttribute("aria-label", `Chọn học cải thiện ${course.name}`);
+      checkLabel.append(checkbox, element("span", "check-mark", "✓"));
+      row.append(checkLabel);
+    }
+
+    const copy = element("div", "custom-course-copy");
+    const heading = element("div", "custom-course-name");
+    heading.append(element("strong", "", course.name));
+    const type = customCourseType(course, improvement);
+    heading.append(element("span", type.className, type.text));
+    const currentGrade = improvement
+      ? `Hiện tại: ${course.letterGrade || formatNumber(course.grade4, 1)} (${formatNumber(course.grade4, 1)})`
+      : [course.courseCode, `${course.credits} TC`].filter(Boolean).join(" · ");
+    copy.append(heading, element("small", "", currentGrade));
+    row.append(copy);
+
+    if (!countsGpa) {
+      row.append(element("span", "pass-only", "Cần đạt"));
+      return row;
+    }
+    const value = improvement
+      ? state.customPlan.improvements[course.key]?.score10
+      : state.customPlan.futureScores[course.key];
+    row.append(createScoreEditor(course, improvement ? "improvement" : "future", value, !selected));
+    return row;
+  }
+
+  function renderCustomPlanner() {
+    if (!state.model) return;
+    const wasOpen = elements.improvementPicker.open;
+    const merged = domain.mergeSelections(state.model, state.selections);
+    const futureCourses = state.model.pending.filter((course) => merged[course.key]?.selected);
+    const candidates = domain.getImprovementCandidates(state.model);
+    const selectedImprovementCount = candidates.filter(
+      (course) => state.customPlan.improvements[course.key]?.selected,
+    ).length;
+
+    elements.customTargetValue.textContent = elements.targetGpa.value === ""
+      ? "—"
+      : formatNumber(elements.targetGpa.value);
+    elements.customFutureCount.textContent = `${futureCourses.length} môn`;
+    elements.customImprovementCount.textContent = `${selectedImprovementCount} đã chọn`;
+    elements.customFutureCourses.replaceChildren();
+    elements.customImprovementCourses.replaceChildren();
+
+    if (!futureCourses.length) {
+      const empty = element("div", "custom-empty");
+      empty.append(
+        element("strong", "", "Chưa chọn môn sẽ học"),
+        element("small", "", state.model.limitedMode
+          ? "Excel cũ không có danh sách môn chưa tích lũy; bạn vẫn có thể chọn môn học cải thiện bên dưới."
+          : "Chọn môn tự chọn ở bảng phía trên hoặc dùng các môn bắt buộc đã được chọn sẵn."),
+      );
+      elements.customFutureCourses.append(empty);
+    } else {
+      futureCourses.forEach((course) => {
+        elements.customFutureCourses.append(createCustomCourseRow(course, {
+          countsGpa: merged[course.key]?.countsGpa,
+        }));
+      });
+    }
+
+    if (!candidates.length) {
+      const empty = element("div", "custom-empty");
+      empty.append(
+        element("strong", "", "Không có môn phù hợp để cải thiện"),
+        element("small", "", "Danh sách chỉ nhận môn đã đạt, có tính TBC và chưa đạt A+."),
+      );
+      elements.customImprovementCourses.append(empty);
+    } else {
+      candidates.forEach((course) => {
+        const selected = Boolean(state.customPlan.improvements[course.key]?.selected);
+        elements.customImprovementCourses.append(createCustomCourseRow(course, {
+          improvement: true,
+          selected,
+        }));
+      });
+    }
+    elements.improvementPicker.open = wasOpen;
+  }
+
+  function markCustomPlanStale() {
+    state.customResultDirty = true;
+    elements.customPlanError.hidden = true;
+    if (!elements.customPlanResult.hidden) {
+      elements.customPlanResult.classList.add("is-stale");
+      elements.customPlanState.className = "custom-plan-state is-warning";
+      elements.customPlanState.textContent = "Kế hoạch đã thay đổi — hãy tính lại để cập nhật kết quả.";
+    }
+  }
+
+  function createCustomAssignmentList(title, assignments, fixed) {
+    const section = element("section", "custom-result-group");
+    section.append(element("h4", "", title));
+    const list = element("ul", "custom-result-list");
+    assignments.forEach((assignment) => {
+      const item = element("li");
+      const copy = element("div");
+      copy.append(
+        element("strong", "", assignment.name),
+        element("small", "", `${assignmentLabel(assignment)} · ${assignment.credits} TC`),
+      );
+      const score = fixed
+        ? `${formatScore10(assignment.score10)} → ${assignment.targetGrade} → ${formatNumber(assignment.targetPoints, 1)}`
+        : `Từ ${formatScore10(assignment.minimumScore10)} → ${assignment.targetGrade}`;
+      item.append(copy, element("span", "custom-score-result", score));
+      list.append(item);
+    });
+    section.append(list);
+    return section;
+  }
+
+  function renderCustomResult(result) {
+    elements.customPlanResult.replaceChildren();
+    elements.customPlanResult.hidden = false;
+    elements.customPlanResult.className = "custom-plan-result";
+    elements.customPlanError.hidden = true;
+    state.customResultDirty = false;
+
+    if (!result.feasible) {
+      const banner = element("div", "custom-result-banner is-error");
+      const copy = element("div");
+      copy.append(
+        element("span", "", "CHƯA THỂ ĐẠT MỤC TIÊU"),
+        element("h3", "", `GPA tối đa: ${formatNumber(result.maximumGpa)}`),
+        element("p", "", result.reason || "Kế hoạch hiện tại chưa đủ để đạt GPA mục tiêu."),
+      );
+      banner.append(copy);
+      elements.customPlanResult.append(banner);
+      if (result.fixedAssignments?.length) {
+        elements.customPlanResult.append(createCustomAssignmentList(
+          "Điểm đang khóa",
+          result.fixedAssignments,
+          true,
+        ));
+      }
+      elements.customPlanState.className = "custom-plan-state is-error";
+      elements.customPlanState.textContent = "Hãy điều chỉnh điểm khóa hoặc chọn thêm môn rồi tính lại.";
+      return;
+    }
+
+    const summary = element("div", "custom-result-summary");
+    [
+      ["GPA dự kiến", formatNumber(result.projectedGpa)],
+      ["Tín chỉ sau kế hoạch", formatNumber(result.projectedCredits, 0)],
+      ["TB phần hệ thống tính", result.remainingAverage4 === null
+        ? "Không có ô trống"
+        : `${formatNumber(result.remainingAverage4)} hệ 4`],
+    ].forEach(([label, value]) => {
+      const card = element("div");
+      card.append(element("span", "", label), element("strong", "", value));
+      summary.append(card);
+    });
+    elements.customPlanResult.append(summary);
+
+    if (result.fixedAssignments.length) {
+      elements.customPlanResult.append(createCustomAssignmentList(
+        "Điểm bạn đã khóa",
+        result.fixedAssignments,
+        true,
+      ));
+    }
+    if (result.suggestedAssignments.length) {
+      elements.customPlanResult.append(createCustomAssignmentList(
+        "Mức tối thiểu hệ thống tính",
+        result.suggestedAssignments,
+        false,
+      ));
+    }
+    if (result.nonGpaCourses.length) {
+      const nonGpa = element("section", "custom-result-group");
+      nonGpa.append(element("h4", "", "Môn không tính TBC"));
+      const list = element("ul", "custom-result-list");
+      result.nonGpaCourses.forEach((course) => {
+        const item = element("li");
+        const copy = element("div");
+        copy.append(
+          element("strong", "", course.name),
+          element("small", "", `${course.credits} TC · không làm thay đổi GPA`),
+        );
+        item.append(copy, element("span", "pass-only", "Cần đạt"));
+        list.append(item);
+      });
+      nonGpa.append(list);
+      elements.customPlanResult.append(nonGpa);
+    }
+    if (!result.assignments.length && !result.nonGpaCourses.length) {
+      elements.customPlanResult.append(element(
+        "div",
+        "custom-result-banner is-success",
+        "Bạn đã đạt GPA mục tiêu với dữ liệu hiện tại.",
+      ));
+    }
+    elements.customPlanState.className = "custom-plan-state is-success";
+    elements.customPlanState.textContent = `Đã tính độc lập theo GPA mục tiêu ${formatNumber(result.target)}.`;
+    elements.customPlanResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
   function renderCompletedCourses() {
     elements.completedCourseRows.replaceChildren();
     state.model.completed.forEach((course) => {
@@ -359,6 +646,8 @@
     state.payload = null;
     state.model = null;
     state.selections = {};
+    state.customPlan = { futureScores: {}, improvements: {} };
+    state.customResultDirty = false;
     elements.fileUpload.value = "";
     elements.dashboard.hidden = true;
     elements.landingPanel.hidden = false;
@@ -389,7 +678,9 @@
       state.selections[input.dataset.key] = current;
       renderPendingCourses();
       renderRequirements();
+      renderCustomPlanner();
       markScenariosStale();
+      markCustomPlanStale();
     });
 
     document.querySelectorAll(".filter-button").forEach((button) => {
@@ -412,7 +703,62 @@
         elements.targetGpa.reportValidity();
       }
     });
-    elements.targetGpa.addEventListener("input", () => elements.targetGpa.setCustomValidity(""));
+    elements.targetGpa.addEventListener("input", () => {
+      elements.targetGpa.setCustomValidity("");
+      elements.customTargetValue.textContent = elements.targetGpa.value === ""
+        ? "—"
+        : formatNumber(elements.targetGpa.value);
+      markScenariosStale();
+      markCustomPlanStale();
+    });
+
+    elements.customPlannerForm.addEventListener("input", (event) => {
+      const input = event.target.closest("input[data-custom-score][data-key]");
+      if (!input) return;
+      const value = input.value === "" ? null : Number(input.value);
+      if (input.dataset.scoreType === "future") {
+        state.customPlan.futureScores[input.dataset.key] = value;
+      } else {
+        const current = state.customPlan.improvements[input.dataset.key] || { selected: true, score10: null };
+        current.score10 = value;
+        state.customPlan.improvements[input.dataset.key] = current;
+      }
+      setScoreFeedback(input);
+      markCustomPlanStale();
+    });
+
+    elements.customPlannerForm.addEventListener("change", (event) => {
+      const input = event.target.closest("input[data-improvement-toggle][data-key]");
+      if (!input) return;
+      const current = state.customPlan.improvements[input.dataset.key] || { score10: null };
+      current.selected = input.checked;
+      state.customPlan.improvements[input.dataset.key] = current;
+      renderCustomPlanner();
+      markCustomPlanStale();
+    });
+
+    elements.customPlannerForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const invalidInput = Array.from(
+        elements.customPlannerForm.querySelectorAll("input[data-custom-score]:not(:disabled)"),
+      ).find((input) => !setScoreFeedback(input));
+      if (invalidInput) {
+        invalidInput.reportValidity();
+        return;
+      }
+      try {
+        const result = domain.generateCustomPlan(
+          state.model,
+          state.selections,
+          elements.targetGpa.value,
+          state.customPlan,
+        );
+        renderCustomResult(result);
+      } catch (error) {
+        elements.customPlanError.hidden = false;
+        elements.customPlanError.textContent = error?.message || "Không thể tính kế hoạch tùy chỉnh.";
+      }
+    });
 
     root.addEventListener("message", (event) => {
       if (event.source !== root || event.origin !== root.location.origin || event.data?.source !== "ULSA_GPA_EXTENSION") return;
@@ -436,7 +782,9 @@
       "replaceDataButton", "modeNotice", "metricWarning", "cumulativeGpa", "academicGpa",
       "accumulatedCredits", "failedCourseCount", "programStatus", "requirementSummary", "groupList",
       "plannerForm", "targetGpa", "coursePlanningPanel", "pendingCourseRows", "scenarioSection",
-      "scenarioGrid", "gradeDetailCount", "completedCourseRows",
+      "scenarioGrid", "customPlanPanel", "customPlannerForm", "customTargetValue", "customFutureCount",
+      "customFutureCourses", "improvementPicker", "customImprovementCount", "customImprovementCourses",
+      "customPlanError", "customPlanState", "customPlanResult", "gradeDetailCount", "completedCourseRows",
     ].forEach((id) => { elements[id] = document.getElementById(id); });
   }
 

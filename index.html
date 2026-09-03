@@ -157,6 +157,56 @@
           </div>
         </section>
 
+        <section class="panel custom-plan-panel" id="customPlanPanel">
+          <div class="section-heading custom-plan-heading">
+            <div>
+              <p class="section-kicker">KỊCH BẢN TÙY CHỈNH</p>
+              <h2>Kế hoạch của tôi</h2>
+              <p>Khóa trước những điểm bạn tự tin đạt được. Các ô để trống sẽ được tính ở mức tối thiểu để chạm GPA mục tiêu.</p>
+            </div>
+            <div class="custom-target-chip">
+              <span>GPA mục tiêu</span>
+              <strong id="customTargetValue">—</strong>
+            </div>
+          </div>
+
+          <form id="customPlannerForm">
+            <div class="custom-plan-layout">
+              <section class="custom-course-section" aria-labelledby="futureCourseHeading">
+                <div class="custom-subheading">
+                  <div>
+                    <h3 id="futureCourseHeading">Môn sẽ học</h3>
+                    <p>Lấy từ danh sách môn chưa tích lũy bạn đã chọn phía trên.</p>
+                  </div>
+                  <span class="course-tag" id="customFutureCount">0 môn</span>
+                </div>
+                <div class="custom-course-list" id="customFutureCourses"></div>
+              </section>
+
+              <details class="improvement-picker" id="improvementPicker">
+                <summary>
+                  <span>
+                    <strong>Chọn môn học cải thiện</strong>
+                    <small>Chỉ hiện môn đã đạt, có tính TBC và chưa đạt A+.</small>
+                  </span>
+                  <span class="course-tag" id="customImprovementCount">0 đã chọn</span>
+                </summary>
+                <div class="custom-course-list improvement-list" id="customImprovementCourses"></div>
+              </details>
+            </div>
+
+            <div class="custom-plan-error" id="customPlanError" role="alert" hidden></div>
+            <div class="custom-plan-actions">
+              <div class="custom-plan-state" id="customPlanState" role="status" aria-live="polite">
+                Điểm để trống sẽ do hệ thống tính.
+              </div>
+              <button class="primary-button" type="submit">Tính kế hoạch của tôi</button>
+            </div>
+          </form>
+
+          <div class="custom-plan-result" id="customPlanResult" aria-live="polite" hidden></div>
+        </section>
+
         <section class="scenario-section" id="scenarioSection" hidden>
           <div class="section-heading">
             <div>

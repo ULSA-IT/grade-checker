@@ -239,3 +239,211 @@ test("môn không tính TBC không làm thay đổi mẫu số GPA dự kiến",
   assert.equal(context.denominator, 3);
   assert.equal(context.futureNonGpaCourses.length, 1);
 });
+
+test("quy đổi đúng toàn bộ biên điểm hệ 10 của ULSA", () => {
+  [
+    ["4,0", "D", 1],
+    [4.7, "D+", 1.5],
+    [5.5, "C", 2],
+    [6.2, "C+", 2.5],
+    [7, "B", 3],
+    [7.7, "B+", 3.5],
+    [8.5, "A", 3.7],
+    [9.2, "A+", 4],
+    [10, "A+", 4],
+  ].forEach(([score10, letter, points]) => {
+    assert.deepEqual(
+      { letter: domain.score10ToGrade(score10).letter, points: domain.score10ToGrade(score10).points },
+      { letter, points },
+    );
+  });
+});
+
+test("chặn điểm hệ 10 ngoài khoảng hoặc có quá một chữ số thập phân", () => {
+  [3.9, 10.1, 8.55, "không phải điểm"].forEach((score) => {
+    assert.throws(
+      () => domain.score10ToGrade(score),
+      (error) => error.code === "INVALID_CUSTOM_SCORE",
+    );
+  });
+});
+
+test("khóa hai môn ở A và tính mức B+ đồng đều cho hai môn còn lại", () => {
+  const required = [1, 2, 3, 4].map((index) =>
+    pending(`NEW${index}`, `Môn mới ${index}`, 3, { required: true, elective: false }));
+  const model = domain.buildModel(makePayload({
+    pendingCourses: required,
+    curriculumCourses: required.map((course) => curriculum(
+      course.courseCode,
+      course.name,
+      course.credits,
+      { required: true },
+    )),
+  }));
+  const result = domain.generateCustomPlan(
+    model,
+    domain.createDefaultSelections(model),
+    3.5,
+    { futureScores: { NEW1: 8.5, NEW2: 8.5 }, improvements: {} },
+  );
+
+  assert.equal(result.feasible, true);
+  assert.equal(result.fixedAssignments.length, 2);
+  assert.equal(result.suggestedAssignments.length, 2);
+  assert.deepEqual(result.suggestedAssignments.map((item) => item.targetGrade), ["B+", "B+"]);
+  assert.ok(result.projectedGpa >= 3.5);
+  assert.equal(result.remainingAverage4, 3.5);
+});
+
+test("kế hoạch tùy chỉnh tính đúng trọng số tín chỉ", () => {
+  const model = domain.buildModel(makePayload({
+    pendingCourses: [
+      pending("TWO", "Môn 2 tín chỉ", 2, { required: true, elective: false }),
+      pending("FOUR", "Môn 4 tín chỉ", 4, { required: true, elective: false }),
+    ],
+    curriculumCourses: [
+      curriculum("TWO", "Môn 2 tín chỉ", 2, { required: true }),
+      curriculum("FOUR", "Môn 4 tín chỉ", 4, { required: true }),
+    ],
+  }));
+  const result = domain.generateCustomPlan(
+    model,
+    domain.createDefaultSelections(model),
+    3.2,
+    { futureScores: { TWO: 8.5 }, improvements: {} },
+  );
+
+  assert.equal(result.feasible, true);
+  assert.equal(result.suggestedAssignments[0].courseKey, "FOUR");
+  assert.equal(result.suggestedAssignments[0].targetGrade, "B");
+  assert.ok(Math.abs(result.projectedGpa - (2 * 3.7 + 4 * 3) / 6) < 1e-9);
+});
+
+test("học cải thiện phải tăng mức điểm chữ và chỉ cộng phần chênh lệch", () => {
+  const model = domain.buildModel(makePayload({
+    completedCourses: [grade("IMPROVE", "Môn đang B+", 3, 3.5, "B+")],
+    curriculumCourses: [curriculum("IMPROVE", "Môn đang B+", 3, { required: true })],
+  }));
+  const config = { improvements: { IMPROVE: { selected: true, score10: 8.4 } } };
+
+  assert.throws(
+    () => domain.generateCustomPlan(model, {}, 3.6, config),
+    (error) => error.code === "IMPROVEMENT_NOT_HIGHER" && /GPA không tăng/.test(error.message),
+  );
+
+  config.improvements.IMPROVE.score10 = 8.5;
+  const result = domain.generateCustomPlan(model, {}, 3.6, config);
+  assert.equal(result.feasible, true);
+  assert.equal(result.projectedCredits, 3);
+  assert.equal(result.projectedGpa, 3.7);
+  assert.ok(Math.abs(result.fixedAssignments[0].impactPoints - 0.6) < 1e-9);
+});
+
+test("môn cải thiện để trống được tính ít nhất một bậc cao hơn", () => {
+  const model = domain.buildModel(makePayload({
+    completedCourses: [grade("IMPROVE", "Môn đang B", 3, 3, "B")],
+  }));
+  const result = domain.generateCustomPlan(
+    model,
+    {},
+    3.5,
+    { improvements: { IMPROVE: { selected: true, score10: null } } },
+  );
+
+  assert.equal(result.feasible, true);
+  assert.equal(result.suggestedAssignments.length, 1);
+  assert.equal(result.suggestedAssignments[0].targetGrade, "B+");
+  assert.equal(result.suggestedAssignments[0].minimumScore10, 7.7);
+});
+
+test("kế hoạch riêng phân biệt học lại F/F+ với môn mới", () => {
+  const model = domain.buildModel(makePayload({
+    completedCourses: [grade("FAIL", "Môn từng trượt", 3, 0.5, "F+")],
+    pendingCourses: [
+      pending("FAIL", "Môn từng trượt", 3, { required: true, elective: false }),
+      pending("NEW", "Môn chưa học", 3, { required: true, elective: false }),
+    ],
+    curriculumCourses: [
+      curriculum("FAIL", "Môn từng trượt", 3, { required: true }),
+      curriculum("NEW", "Môn chưa học", 3, { required: true }),
+    ],
+  }));
+  const result = domain.generateCustomPlan(
+    model,
+    domain.createDefaultSelections(model),
+    1,
+    {},
+  );
+
+  assert.equal(result.feasible, true);
+  assert.deepEqual(
+    result.suggestedAssignments.map((item) => item.type),
+    ["retake-failed", "new-course"],
+  );
+});
+
+test("môn cải thiện trùng mã chỉ xuất hiện một lần và giữ kết quả cao nhất", () => {
+  const model = domain.buildModel(makePayload({
+    completedCourses: [
+      grade("DUP", "Môn học nhiều lần", 3, 2, "C"),
+      grade("DUP", "Môn học nhiều lần", 3, 3, "B"),
+      grade("OTHER", "Môn khác", 2, 3.7, "A"),
+    ],
+  }));
+  const candidates = domain.getImprovementCandidates(model);
+
+  assert.equal(candidates.length, 2);
+  assert.equal(candidates.find((course) => course.key === "DUP").grade4, 3);
+});
+
+test("môn không tính TBC trong kế hoạch riêng chỉ yêu cầu đạt", () => {
+  const model = domain.buildModel(makePayload({
+    completedCourses: [grade("BASE", "Môn nền", 3, 3, "B")],
+    pendingCourses: [pending("PE", "Thể chất", 2, {
+      required: true,
+      elective: false,
+      knowledgeBlock: "Giáo dục thể chất",
+    })],
+    curriculumCourses: [
+      curriculum("BASE", "Môn nền", 3, { required: true }),
+      curriculum("PE", "Thể chất", 2, { required: true, knowledgeBlock: "Giáo dục thể chất" }),
+    ],
+  }));
+  const result = domain.generateCustomPlan(
+    model,
+    domain.createDefaultSelections(model),
+    3,
+    { futureScores: { PE: 9.2 } },
+  );
+
+  assert.equal(result.feasible, true);
+  assert.equal(result.projectedGpa, 3);
+  assert.equal(result.projectedCredits, 3);
+  assert.equal(result.nonGpaCourses.length, 1);
+  assert.equal(result.assignments.length, 0);
+});
+
+test("báo rõ điểm khóa quá thấp khiến mục tiêu không còn khả thi", () => {
+  const model = domain.buildModel(makePayload({
+    completedCourses: [grade("BASE", "Môn nền", 3, 3, "B")],
+    pendingCourses: [
+      pending("LOCK", "Môn khóa điểm", 3, { required: true, elective: false }),
+      pending("OPEN", "Môn để trống", 3, { required: true, elective: false }),
+    ],
+    curriculumCourses: [
+      curriculum("BASE", "Môn nền", 3, { required: true }),
+      curriculum("LOCK", "Môn khóa điểm", 3, { required: true }),
+      curriculum("OPEN", "Môn để trống", 3, { required: true }),
+    ],
+  }));
+  const result = domain.generateCustomPlan(
+    model,
+    domain.createDefaultSelections(model),
+    3.5,
+    { futureScores: { LOCK: 4 }, improvements: {} },
+  );
+
+  assert.equal(result.feasible, false);
+  assert.equal(result.code, "LOCKED_SCORES_TOO_LOW");
+  assert.ok(result.maximumGpa < 3.5);
+});

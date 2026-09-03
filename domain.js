@@ -6,14 +6,14 @@
   "use strict";
 
   const GRADE_SCALE = [
-    { letter: "D", points: 1 },
-    { letter: "D+", points: 1.5 },
-    { letter: "C", points: 2 },
-    { letter: "C+", points: 2.5 },
-    { letter: "B", points: 3 },
-    { letter: "B+", points: 3.5 },
-    { letter: "A", points: 3.7 },
-    { letter: "A+", points: 4 },
+    { letter: "D", points: 1, minScore10: 4, maxScore10: 4.6 },
+    { letter: "D+", points: 1.5, minScore10: 4.7, maxScore10: 5.4 },
+    { letter: "C", points: 2, minScore10: 5.5, maxScore10: 6.1 },
+    { letter: "C+", points: 2.5, minScore10: 6.2, maxScore10: 6.9 },
+    { letter: "B", points: 3, minScore10: 7, maxScore10: 7.6 },
+    { letter: "B+", points: 3.5, minScore10: 7.7, maxScore10: 8.4 },
+    { letter: "A", points: 3.7, minScore10: 8.5, maxScore10: 9.1 },
+    { letter: "A+", points: 4, minScore10: 9.2, maxScore10: 10 },
   ];
   const NON_GPA_BLOCK_PATTERNS = [
     "giao duc the chat",
@@ -67,6 +67,19 @@
   function isLikelyNonGpa(course) {
     const block = normalizeSearch(course?.knowledgeBlock);
     return NON_GPA_BLOCK_PATTERNS.some((pattern) => block.includes(pattern));
+  }
+
+  function score10ToGrade(value) {
+    const normalized = typeof value === "string" ? value.replace(",", ".").trim() : value;
+    const score10 = Number(normalized);
+    if (!Number.isFinite(score10) || score10 < 4 || score10 > 10) {
+      throw new DomainError("INVALID_CUSTOM_SCORE", "Điểm dự kiến phải nằm trong khoảng 4,0 đến 10,0.");
+    }
+    if (Math.abs(score10 * 10 - Math.round(score10 * 10)) > 1e-8) {
+      throw new DomainError("INVALID_CUSTOM_SCORE", "Điểm dự kiến chỉ được có một chữ số thập phân.");
+    }
+    const grade = [...GRADE_SCALE].reverse().find((item) => score10 + 1e-9 >= item.minScore10);
+    return { ...grade, score10 };
   }
 
   function validatePayload(payload) {
@@ -303,6 +316,252 @@
     };
   }
 
+  function getImprovementCandidates(model) {
+    const byKey = new Map();
+    model.completed.forEach((course) => {
+      if (!isPassedCourse(course) || course.excludedFromGpa ||
+        !Number.isFinite(Number(course.grade4)) || Number(course.grade4) >= 4) return;
+      const current = byKey.get(course.key);
+      const currentGrade4 = Number(current?.grade4);
+      const nextGrade4 = Number(course.grade4);
+      const currentGrade10 = Number(current?.grade10);
+      const nextGrade10 = Number(course.grade10);
+      if (!current || nextGrade4 > currentGrade4 ||
+        (nextGrade4 === currentGrade4 && nextGrade10 > currentGrade10)) {
+        byKey.set(course.key, course);
+      }
+    });
+    return Array.from(byKey.values());
+  }
+
+  function hasCustomScore(value) {
+    return value !== null && value !== undefined && String(value).trim() !== "";
+  }
+
+  function createCustomAssignment(variable, target, fixedScore10 = null) {
+    const improvement = variable.type === "improvement";
+    const credits = Number(variable.course.credits);
+    return {
+      type: variable.type,
+      courseKey: variable.course.key,
+      courseCode: variable.course.courseCode,
+      name: variable.course.name,
+      credits,
+      fromPoints: improvement ? Number(variable.course.grade4) : null,
+      fromGrade: improvement ? variable.course.letterGrade : null,
+      targetGrade: target.letter,
+      targetPoints: target.points,
+      score10: fixedScore10,
+      minimumScore10: fixedScore10 === null ? target.minScore10 : null,
+      fixed: fixedScore10 !== null,
+      impactPoints: improvement
+        ? (target.points - Number(variable.course.grade4)) * credits
+        : target.points * credits,
+    };
+  }
+
+  function customStateTuple(state) {
+    const spread = state.assignmentCount > 1 ? state.maxGradeIndex - state.minGradeIndex : 0;
+    return [state.maxGradeIndex, spread, state.score10Effort, state.addedUnits];
+  }
+
+  function generateCustomPlan(model, selections, requestedTarget, customPlan = {}) {
+    const target = Number(requestedTarget);
+    if (!Number.isFinite(target) || target < 0 || target > 4) {
+      throw new DomainError("INVALID_TARGET", "GPA mục tiêu phải nằm trong khoảng 0 đến 4.");
+    }
+
+    const context = preparePlannerContext(model, selections);
+    if (!context.denominator) {
+      return {
+        feasible: false,
+        code: "NO_GPA_COURSES",
+        target,
+        maximumGpa: null,
+        assignments: [],
+        fixedAssignments: [],
+        suggestedAssignments: [],
+        nonGpaCourses: context.futureNonGpaCourses,
+      };
+    }
+
+    const futureScores = customPlan.futureScores || {};
+    const improvementConfig = customPlan.improvements || {};
+    const improvementCandidates = getImprovementCandidates(model);
+    const selectedImprovements = improvementCandidates.filter(
+      (course) => Boolean(improvementConfig[course.key]?.selected),
+    );
+    const fixedAssignments = [];
+    const variables = [];
+    let fixedImpactPoints = 0;
+
+    context.futureGpaCourses.forEach((course) => {
+      const variable = { type: course.failedRecord ? "retake-failed" : "new-course", course };
+      const fixedValue = futureScores[course.key];
+      if (hasCustomScore(fixedValue)) {
+        const targetGrade = score10ToGrade(fixedValue);
+        const assignment = createCustomAssignment(variable, targetGrade, targetGrade.score10);
+        fixedAssignments.push(assignment);
+        fixedImpactPoints += assignment.impactPoints;
+        return;
+      }
+      variables.push({
+        ...variable,
+        options: GRADE_SCALE.map((grade, gradeIndex) => ({
+          target: grade,
+          gradeIndex,
+          scoreUnits: Math.round(grade.points * Number(course.credits) * SCORE_SCALE),
+          score10Effort: Math.round(grade.minScore10 * Number(course.credits) * SCORE_SCALE),
+        })),
+      });
+    });
+
+    selectedImprovements.forEach((course) => {
+      const variable = { type: "improvement", course };
+      const fixedValue = improvementConfig[course.key]?.score10;
+      if (hasCustomScore(fixedValue)) {
+        const targetGrade = score10ToGrade(fixedValue);
+        if (targetGrade.points <= Number(course.grade4)) {
+          throw new DomainError(
+            "IMPROVEMENT_NOT_HIGHER",
+            `${course.name}: ${String(fixedValue).replace(".", ",")} vẫn quy đổi thành ${targetGrade.letter} (${targetGrade.points.toFixed(1)}), nên GPA không tăng.`,
+          );
+        }
+        const assignment = createCustomAssignment(variable, targetGrade, targetGrade.score10);
+        fixedAssignments.push(assignment);
+        fixedImpactPoints += assignment.impactPoints;
+        return;
+      }
+      const options = GRADE_SCALE.map((grade, gradeIndex) => ({ grade, gradeIndex }))
+        .filter(({ grade }) => grade.points > Number(course.grade4))
+        .map(({ grade, gradeIndex }) => ({
+          target: grade,
+          gradeIndex,
+          scoreUnits: Math.round(
+            (grade.points - Number(course.grade4)) * Number(course.credits) * SCORE_SCALE,
+          ),
+          score10Effort: Math.round(grade.minScore10 * Number(course.credits) * SCORE_SCALE),
+        }));
+      if (options.length) variables.push({ ...variable, options });
+    });
+
+    const baseUnits = Math.round((context.currentPoints + fixedImpactPoints) * SCORE_SCALE);
+    const requiredUnits = Math.ceil(target * context.denominator * SCORE_SCALE - baseUnits - 1e-9);
+    let states = new Map([[0, {
+      addedUnits: 0,
+      maxGradeIndex: 0,
+      minGradeIndex: Number.POSITIVE_INFINITY,
+      assignmentCount: 0,
+      score10Effort: 0,
+      assignments: [],
+    }]]);
+
+    variables.forEach((variable) => {
+      const next = new Map();
+      states.forEach((state) => {
+        variable.options.forEach((option) => {
+          const addedUnits = state.addedUnits + option.scoreUnits;
+          const candidate = {
+            addedUnits,
+            maxGradeIndex: Math.max(state.maxGradeIndex, option.gradeIndex),
+            minGradeIndex: Math.min(state.minGradeIndex, option.gradeIndex),
+            assignmentCount: state.assignmentCount + 1,
+            score10Effort: state.score10Effort + option.score10Effort,
+            assignments: [
+              ...state.assignments,
+              createCustomAssignment(variable, option.target),
+            ],
+          };
+          const current = next.get(addedUnits);
+          if (!current || compareTuple(customStateTuple(candidate), customStateTuple(current)) < 0) {
+            next.set(addedUnits, candidate);
+          }
+        });
+      });
+      states = next;
+    });
+
+    const allStates = Array.from(states.values());
+    const maximumState = allStates.slice().sort((left, right) => right.addedUnits - left.addedUnits)[0];
+    const maximumGpa = (baseUnits + (maximumState?.addedUnits || 0)) /
+      (context.denominator * SCORE_SCALE);
+    const candidates = allStates.filter((state) => state.addedUnits >= Math.max(0, requiredUnits));
+    const selectedImpactCount = context.futureGpaCourses.length + selectedImprovements.length;
+
+    if (!candidates.length) {
+      const maximumWithoutLocks = (
+        context.currentPoints +
+        context.futureGpaCourses.reduce((sum, course) => sum + Number(course.credits) * 4, 0) +
+        selectedImprovements.reduce(
+          (sum, course) => sum + (4 - Number(course.grade4)) * Number(course.credits),
+          0,
+        )
+      ) / context.denominator;
+      const merged = context.merged;
+      const hasMoreCourses = model.pending.some(
+        (course) => !merged[course.key]?.selected && merged[course.key]?.countsGpa,
+      ) ||
+        improvementCandidates.some((course) => !improvementConfig[course.key]?.selected);
+      let code = "TARGET_UNREACHABLE";
+      let reason = "Ngay cả khi mọi ô còn trống đạt A+, các môn đã chọn vẫn chưa đủ để chạm mục tiêu.";
+      if (!selectedImpactCount) {
+        code = "NO_CUSTOM_COURSES";
+        reason = "Chưa có môn tính TBC hoặc môn học cải thiện nào trong kế hoạch.";
+      } else if (fixedAssignments.length && maximumWithoutLocks + 1e-9 >= target) {
+        code = "LOCKED_SCORES_TOO_LOW";
+        reason = "Một hoặc nhiều điểm đã khóa quá thấp; nếu để hệ thống tính lại các ô đó thì mục tiêu vẫn có thể đạt.";
+      } else if (hasMoreCourses) {
+        code = "MORE_COURSES_NEEDED";
+        reason = "Các môn hiện chọn chưa tạo đủ dư địa; hãy chọn thêm môn mới hoặc môn học cải thiện.";
+      } else {
+        code = "NO_MORE_IMPROVEMENTS";
+        reason = "Không còn môn phù hợp để cải thiện và mức tối đa của kế hoạch vẫn thấp hơn mục tiêu.";
+      }
+      return {
+        feasible: false,
+        code,
+        reason,
+        target,
+        maximumGpa,
+        assignments: fixedAssignments,
+        fixedAssignments,
+        suggestedAssignments: [],
+        selectedFutureCount: context.futureGpaCourses.length,
+        nonGpaCourses: context.futureNonGpaCourses,
+        projectedCredits: context.denominator,
+      };
+    }
+
+    candidates.sort((left, right) => {
+      const primary = compareTuple(customStateTuple(left), customStateTuple(right));
+      if (primary !== 0) return primary;
+      return (left.addedUnits - Math.max(0, requiredUnits)) -
+        (right.addedUnits - Math.max(0, requiredUnits));
+    });
+    const best = candidates[0];
+    const projectedGpa = (baseUnits + best.addedUnits) / (context.denominator * SCORE_SCALE);
+    const suggestedCredits = best.assignments.reduce((sum, item) => sum + item.credits, 0);
+    const remainingAverage4 = suggestedCredits
+      ? best.assignments.reduce((sum, item) => sum + item.targetPoints * item.credits, 0) /
+        suggestedCredits
+      : null;
+
+    return {
+      feasible: true,
+      code: "CUSTOM_PLAN_READY",
+      target,
+      projectedGpa,
+      maximumGpa,
+      projectedCredits: context.denominator,
+      assignments: [...fixedAssignments, ...best.assignments],
+      fixedAssignments,
+      suggestedAssignments: best.assignments,
+      remainingAverage4,
+      selectedFutureCount: context.futureGpaCourses.length,
+      nonGpaCourses: context.futureNonGpaCourses,
+    };
+  }
+
   function compareTuple(left, right) {
     for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
       const difference = (left[index] ?? 0) - (right[index] ?? 0);
@@ -524,6 +783,7 @@
     isFailedCourse,
     isPassedCourse,
     isLikelyNonGpa,
+    score10ToGrade,
     validatePayload,
     weightedMetrics,
     buildModel,
@@ -531,7 +791,9 @@
     mergeSelections,
     analyzeRequirements,
     preparePlannerContext,
+    getImprovementCandidates,
     optimizeScenario,
     generateScenarios,
+    generateCustomPlan,
   };
 });
