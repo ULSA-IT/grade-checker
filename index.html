@@ -96,125 +96,175 @@
           </article>
         </section>
 
-        <div class="content-grid">
-          <section class="panel progress-panel">
-            <div class="section-heading">
-              <div>
-                <p class="section-kicker">TIẾN ĐỘ CTĐT</p>
-                <h2>Điều kiện học phần</h2>
-              </div>
-              <span class="status-pill" id="programStatus">Đang kiểm tra</span>
-            </div>
-            <div id="requirementSummary"></div>
-            <div class="group-list" id="groupList"></div>
-            <p class="scope-note">Chỉ kiểm tra học phần trong chương trình; chưa bao gồm chuẩn đầu ra, rèn luyện và nghĩa vụ hành chính.</p>
-          </section>
-
-          <section class="panel planner-intro">
-            <p class="section-kicker">MỤC TIÊU CỦA BẠN</p>
-            <h2>GPA tích lũy muốn đạt</h2>
-            <form id="plannerForm">
-              <label for="targetGpa">Nhập GPA từ 0 đến 4</label>
-              <div class="target-control">
-                <input id="targetGpa" type="number" min="0" max="4" step="0.01" inputmode="decimal" required />
-                <button class="primary-button" type="submit">Tạo 3 kịch bản</button>
-              </div>
-            </form>
-            <div class="formula-note">
-              <span aria-hidden="true">∑</span>
-              <p>Điểm tương lai được tính cùng số tín chỉ. Học cải thiện chỉ thay điểm cũ khi điểm mới cao hơn.</p>
-            </div>
-          </section>
-        </div>
-
-        <section class="panel course-panel" id="coursePlanningPanel">
-          <div class="section-heading course-heading">
-            <div>
-              <p class="section-kicker">KẾ HOẠCH MÔN HỌC</p>
-              <h2>Chọn môn chưa tích lũy</h2>
-              <p>Môn bắt buộc được khóa sẵn. Với môn tự chọn, bạn quyết định có học và có tính TBC hay không.</p>
-            </div>
-            <div class="filter-group" role="group" aria-label="Lọc môn học">
-              <button class="filter-button is-active" type="button" data-filter="all">Tất cả</button>
-              <button class="filter-button" type="button" data-filter="required">Bắt buộc</button>
-              <button class="filter-button" type="button" data-filter="elective">Tự chọn</button>
-              <button class="filter-button" type="button" data-filter="failed">F/F+</button>
-            </div>
-          </div>
-          <div class="table-scroll">
-            <table class="course-table">
-              <thead>
-                <tr>
-                  <th scope="col">Học</th>
-                  <th scope="col">Học phần</th>
-                  <th scope="col">Phân loại</th>
-                  <th scope="col">TC</th>
-                  <th scope="col">Tính TBC</th>
-                </tr>
-              </thead>
-              <tbody id="pendingCourseRows"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="panel custom-plan-panel" id="customPlanPanel">
-          <div class="section-heading custom-plan-heading">
-            <div>
-              <p class="section-kicker">KỊCH BẢN TÙY CHỈNH</p>
-              <h2>Kế hoạch của tôi</h2>
-              <p>Khóa trước những điểm bạn tự tin đạt được. Các ô để trống sẽ được tính ở mức tối thiểu để chạm GPA mục tiêu.</p>
-            </div>
-            <div class="custom-target-chip">
-              <span>GPA mục tiêu</span>
-              <strong id="customTargetValue">—</strong>
-            </div>
-          </div>
-
-          <form id="customPlannerForm">
-            <div class="custom-plan-layout">
-              <section class="custom-course-section" aria-labelledby="futureCourseHeading">
-                <div class="custom-subheading">
-                  <div>
-                    <h3 id="futureCourseHeading">Môn sẽ học</h3>
-                    <p>Lấy từ danh sách môn chưa tích lũy bạn đã chọn phía trên.</p>
-                  </div>
-                  <span class="course-tag" id="customFutureCount">0 môn</span>
-                </div>
-                <div class="custom-course-list" id="customFutureCourses"></div>
-              </section>
-
-              <details class="improvement-picker" id="improvementPicker">
-                <summary>
-                  <span>
-                    <strong>Chọn môn học cải thiện</strong>
-                    <small>Chỉ hiện môn đã đạt, có tính TBC và chưa đạt A+.</small>
-                  </span>
-                  <span class="course-tag" id="customImprovementCount">0 đã chọn</span>
-                </summary>
-                <div class="custom-course-list improvement-list" id="customImprovementCourses"></div>
-              </details>
-            </div>
-
-            <div class="custom-plan-error" id="customPlanError" role="alert" hidden></div>
-            <div class="custom-plan-actions">
-              <div class="custom-plan-state" id="customPlanState" role="status" aria-live="polite">
-                Điểm để trống sẽ do hệ thống tính.
-              </div>
-              <button class="primary-button" type="submit">Tính kế hoạch của tôi</button>
-            </div>
-          </form>
-
-          <div class="custom-plan-result" id="customPlanResult" aria-live="polite" hidden></div>
-        </section>
-
-        <section class="scenario-section" id="scenarioSection" hidden>
+        <section class="panel progress-panel">
           <div class="section-heading">
             <div>
-              <p class="section-kicker">LỘ TRÌNH ĐỀ XUẤT</p>
-              <h2>Ba cách chạm tới mục tiêu</h2>
+              <p class="section-kicker">TIẾN ĐỘ CTĐT</p>
+              <h2>Điều kiện học phần</h2>
+            </div>
+            <span class="status-pill" id="programStatus">Đang kiểm tra</span>
+          </div>
+          <div id="requirementSummary"></div>
+          <div class="group-list" id="groupList"></div>
+          <p class="scope-note">Chỉ kiểm tra học phần trong chương trình; chưa bao gồm chuẩn đầu ra, rèn luyện và nghĩa vụ hành chính.</p>
+        </section>
+
+        <section class="planner-workspace" id="plannerWorkspace" aria-label="Lập kế hoạch GPA">
+          <div class="planner-toolbar">
+            <div class="goal-strip">
+              <div class="goal-current">
+                <span>GPA hiện tại</span>
+                <strong id="plannerCurrentGpa">—</strong>
+              </div>
+              <span class="goal-arrow" aria-hidden="true">→</span>
+              <form id="plannerForm" class="goal-target">
+                <label for="targetGpa">GPA mục tiêu</label>
+                <input id="targetGpa" type="number" min="0" max="4" step="0.01" inputmode="decimal" required />
+              </form>
+              <div class="planner-selection-overview">
+                <span>Kế hoạch đang chọn</span>
+                <strong id="plannerSelectionSummary">Chưa chọn môn</strong>
+              </div>
+            </div>
+
+            <div class="planner-tabs" id="plannerTabs" role="tablist" aria-label="Cách lập kế hoạch GPA">
+              <button
+                class="planner-tab is-active"
+                id="automaticTab"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                aria-controls="automaticPlanPanel"
+                data-planner-tab="automatic"
+              >Gợi ý tự động</button>
+              <button
+                class="planner-tab"
+                id="customTab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="customPlanPanel"
+                tabindex="-1"
+                data-planner-tab="custom"
+              >Kế hoạch của tôi</button>
             </div>
           </div>
-          <div class="scenario-grid" id="scenarioGrid"></div>
+
+          <details class="panel course-panel" id="coursePlanningPanel" open>
+            <summary class="course-summary">
+              <div>
+                <p class="section-kicker">KẾ HOẠCH MÔN HỌC</p>
+                <h2 id="plannerWorkspaceHeading">Chọn môn chưa tích lũy</h2>
+                <p>Môn bắt buộc được khóa sẵn; môn tự chọn do bạn quyết định.</p>
+              </div>
+              <div class="course-summary-action">
+                <strong id="courseSelectionSummary">Chưa chọn môn</strong>
+                <span>Chỉnh sửa môn</span>
+              </div>
+            </summary>
+            <div class="course-panel-body">
+              <div class="course-tools">
+                <p>Với mỗi môn, chọn có học và có tính vào TBC hay không.</p>
+                <div class="filter-group" role="group" aria-label="Lọc môn học">
+                  <button class="filter-button is-active" type="button" data-filter="all">Tất cả</button>
+                  <button class="filter-button" type="button" data-filter="required">Bắt buộc</button>
+                  <button class="filter-button" type="button" data-filter="elective">Tự chọn</button>
+                  <button class="filter-button" type="button" data-filter="failed">F/F+</button>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table class="course-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Học</th>
+                      <th scope="col">Học phần</th>
+                      <th scope="col">Phân loại</th>
+                      <th scope="col">TC</th>
+                      <th scope="col">Tính TBC</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pendingCourseRows"></tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+
+          <section
+            class="planner-tab-panel"
+            id="automaticPlanPanel"
+            role="tabpanel"
+            aria-labelledby="automaticTab"
+          >
+            <section class="panel automatic-plan-intro">
+              <div>
+                <p class="section-kicker">GỢI Ý TỰ ĐỘNG</p>
+                <h2>Ba cách chạm tới mục tiêu</h2>
+                <p>Hệ thống tự cân đối các môn đã chọn và những môn có thể học cải thiện.</p>
+              </div>
+              <div class="automatic-plan-actions">
+                <div class="planner-mode-state" id="automaticPlanState" role="status" aria-live="polite">
+                  Sẵn sàng tạo phương án theo mục tiêu hiện tại.
+                </div>
+                <button class="primary-button" type="submit" form="plannerForm">Tạo 3 kịch bản</button>
+              </div>
+            </section>
+
+            <section class="scenario-section" id="scenarioSection" hidden>
+              <div class="scenario-grid" id="scenarioGrid"></div>
+            </section>
+          </section>
+
+          <section
+            class="panel custom-plan-panel planner-tab-panel"
+            id="customPlanPanel"
+            role="tabpanel"
+            aria-labelledby="customTab"
+            hidden
+          >
+            <div class="section-heading custom-plan-heading">
+              <div>
+                <p class="section-kicker">KỊCH BẢN TÙY CHỈNH</p>
+                <h2>Kế hoạch của tôi</h2>
+                <p>Khóa trước những điểm bạn tự tin đạt được. Các ô để trống sẽ được tính ở mức tối thiểu để chạm GPA mục tiêu.</p>
+              </div>
+            </div>
+
+            <form id="customPlannerForm">
+              <div class="custom-plan-layout">
+                <section class="custom-course-section" aria-labelledby="futureCourseHeading">
+                  <div class="custom-subheading">
+                    <div>
+                      <h3 id="futureCourseHeading">Môn sẽ học</h3>
+                      <p>Lấy từ danh sách môn chưa tích lũy bạn đã chọn phía trên.</p>
+                    </div>
+                    <span class="course-tag" id="customFutureCount">0 môn</span>
+                  </div>
+                  <div class="custom-course-list" id="customFutureCourses"></div>
+                </section>
+
+                <details class="improvement-picker" id="improvementPicker">
+                  <summary>
+                    <span>
+                      <strong>Chọn môn học cải thiện</strong>
+                      <small>Chỉ hiện môn đã đạt, có tính TBC và chưa đạt A+.</small>
+                    </span>
+                    <span class="course-tag" id="customImprovementCount">0 đã chọn</span>
+                  </summary>
+                  <div class="custom-course-list improvement-list" id="customImprovementCourses"></div>
+                </details>
+              </div>
+
+              <div class="custom-plan-error" id="customPlanError" role="alert" hidden></div>
+              <div class="custom-plan-actions">
+                <div class="custom-plan-state" id="customPlanState" role="status" aria-live="polite">
+                  Điểm để trống sẽ do hệ thống tính.
+                </div>
+                <button class="primary-button" type="submit">Tính kế hoạch của tôi</button>
+              </div>
+            </form>
+
+            <div class="custom-plan-result" id="customPlanResult" aria-live="polite" hidden></div>
+          </section>
         </section>
 
         <details class="panel grade-details">
