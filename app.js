@@ -81,13 +81,13 @@
     elements.landingPanel.hidden = true;
     elements.dashboard.hidden = false;
     elements.programName.textContent = state.payload.source?.programName || "Chương trình đào tạo hiện tại";
-    elements.dataMeta.textContent = `Dữ liệu lúc ${formatDate(state.payload.fetchedAt)} · Không lưu trên máy chủ`;
+    elements.dataMeta.textContent = `Bảng điểm cập nhật lúc ${formatDate(state.payload.fetchedAt)} · Không lưu trên máy chủ`;
     elements.cumulativeGpa.textContent = formatNumber(cumulative);
     elements.plannerCurrentGpa.textContent = formatNumber(cumulative);
     elements.academicGpa.textContent = formatNumber(academic);
     elements.accumulatedCredits.textContent = formatNumber(credits, 0);
     elements.failedCourseCount.textContent = String(failedCount);
-    elements.gradeDetailCount.textContent = `${model.completed.length} kết quả học phần`;
+    elements.gradeDetailCount.textContent = `${model.completed.length} kết quả môn học`;
 
     const modeMessages = [];
     if (model.limitedMode) {
@@ -96,14 +96,14 @@
     if (model.unsupportedRegulation) {
       modeMessages.push(`Khóa D${model.cohort ?? "16 trở về trước"} chưa được hỗ trợ đầy đủ. Kịch bản chỉ dùng để tham khảo và chưa áp dụng quy tắc riêng của khóa này.`);
     } else if (model.regulationSupportUnknown) {
-      modeMessages.push("Hai trang dữ liệu không cho biết khóa tuyển sinh. Phiên bản này áp dụng quy tắc D17 trở đi; sinh viên D16 trở về trước chỉ nên dùng kết quả để tham khảo.");
+      modeMessages.push("Chưa xác định được khóa của bạn từ bảng điểm và chương trình đào tạo. Công cụ áp dụng quy tắc D17 trở đi; sinh viên D16 trở về trước chỉ nên dùng kết quả để tham khảo.");
     }
     elements.modeNotice.hidden = modeMessages.length === 0;
     elements.modeNotice.textContent = modeMessages.join(" ");
     const mismatch = model.summaryMismatch.academic || model.summaryMismatch.cumulative;
     elements.metricWarning.hidden = !mismatch;
     if (mismatch) {
-      elements.metricWarning.textContent = "Điểm tính lại lệch hơn 0,01 so với chỉ số ULSA. Thẻ tổng quan giữ số chính thức; kịch bản dùng dữ liệu từng học phần và cần được xem như mô phỏng.";
+      elements.metricWarning.textContent = "GPA tính từ từng môn lệch hơn 0,01 so với số trường cung cấp. Phần tổng quan vẫn hiển thị số của trường; hãy đối chiếu bảng điểm trước khi dùng các kế hoạch dự kiến.";
     }
 
     const defaultTarget = Math.min(4, Math.max(Number(cumulative) || 0, 2) + 0.1);
@@ -135,13 +135,13 @@
     elements.groupList.replaceChildren();
 
     if (analysis.limitedMode) {
-      elements.programStatus.textContent = "Thiếu dữ liệu CTĐT";
+      elements.programStatus.textContent = "Chưa có chương trình đào tạo";
       elements.programStatus.classList.remove("is-success");
       elements.programStatus.removeAttribute("title");
       const notice = element("div", "requirement-line");
       const copy = element("div");
-      copy.append(element("strong", "", "Không thể kiểm tra điều kiện học phần"));
-      copy.append(element("small", "", "Hãy dùng nút Phân tích GPA của extension hoặc workbook v2."));
+      copy.append(element("strong", "", "Chưa thể xác định các môn cần hoàn thành"));
+      copy.append(element("small", "", "Hãy chọn Phân tích GPA trong tiện ích Chạm GPA hoặc nhập file Excel từ phiên bản tiện ích mới."));
       notice.append(copy);
       elements.requirementSummary.append(notice);
       return;
@@ -156,11 +156,11 @@
     let statusText;
     let explanationText;
     if (analysis.academicallyCompleteNow) {
-      statusText = "Đã tích lũy đủ môn";
-      explanationText = "Theo dữ liệu hiện tại, bạn đã tích lũy đủ môn bắt buộc và số môn tối thiểu của từng nhóm tự chọn.";
+      statusText = "Đã hoàn thành yêu cầu môn học";
+      explanationText = "Theo dữ liệu hiện tại, bạn đã qua đủ môn bắt buộc và số môn tối thiểu của từng nhóm tự chọn.";
     } else if (planComplete) {
       statusText = "Đã chọn đủ môn cần học";
-      explanationText = "Các môn đang chọn đã phủ đủ yêu cầu học phần. Bạn vẫn cần học đạt chúng; đây chưa phải kết luận đủ điều kiện tốt nghiệp.";
+      explanationText = "Bạn đã chọn đủ môn để hoàn thành chương trình. Bạn vẫn cần học và qua các môn này; đây chưa phải kết luận đủ điều kiện tốt nghiệp.";
     } else {
       const missingTotal = missingRequiredFromPlan + missingElectivesFromPlan;
       statusText = missingElectivesFromPlan > 0 && missingRequiredFromPlan === 0
@@ -169,7 +169,7 @@
       const reasons = [];
       if (missingRequiredFromPlan > 0) reasons.push(`${missingRequiredFromPlan} môn bắt buộc chưa có trong danh sách lập kế hoạch`);
       if (missingElectivesFromPlan > 0) reasons.push(`${missingElectivesFromPlan} môn tự chọn để đủ mức tối thiểu của các nhóm`);
-      explanationText = `Kế hoạch hiện chưa đủ CTĐT: cần bổ sung ${reasons.join(" và ")}.`;
+      explanationText = `Kế hoạch chưa đủ môn để hoàn thành chương trình: cần bổ sung ${reasons.join(" và ")}.`;
     }
     elements.programStatus.textContent = statusText;
     elements.programStatus.classList.toggle("is-success", planComplete);
@@ -179,13 +179,13 @@
 
     const requirementLine = element("div", "requirement-line");
     const requirementCopy = element("div");
-    requirementCopy.append(element("strong", "", "Môn bắt buộc chưa tích lũy"));
+    requirementCopy.append(element("strong", "", "Môn bắt buộc chưa hoàn thành"));
     requirementCopy.append(element(
       "small",
       "",
       analysis.missingRequired.length
         ? "Được chọn sẵn trong kế hoạch và không thể bỏ."
-        : "Bạn đã tích lũy toàn bộ môn bắt buộc trong dữ liệu hiện tại.",
+        : "Bạn đã qua toàn bộ môn bắt buộc trong dữ liệu hiện tại.",
     ));
     requirementLine.append(requirementCopy, element("span", "requirement-count", String(analysis.missingRequired.length)));
     elements.requirementSummary.append(requirementLine);
@@ -310,7 +310,7 @@
       gpaCell.append(createSwitch(
         selection.countsGpa,
         !selection.selected,
-        `${course.name} có tính vào TBC`,
+        `${course.name} có tính vào GPA`,
         "countsGpa",
         course.key,
       ));
@@ -441,7 +441,7 @@
       empty.append(
         element("strong", "", "Chưa chọn môn sẽ học"),
         element("small", "", state.model.limitedMode
-          ? "Excel cũ không có danh sách môn chưa tích lũy; bạn vẫn có thể chọn môn học cải thiện bên dưới."
+          ? "Excel cũ không có danh sách môn chưa hoàn thành; bạn vẫn có thể chọn môn học cải thiện bên dưới."
           : "Chọn môn tự chọn ở bảng phía trên hoặc dùng các môn bắt buộc đã được chọn sẵn."),
       );
       elements.customFutureCourses.append(empty);
@@ -457,7 +457,7 @@
       const empty = element("div", "custom-empty");
       empty.append(
         element("strong", "", "Không có môn phù hợp để cải thiện"),
-        element("small", "", "Danh sách chỉ nhận môn đã đạt, có tính TBC và chưa đạt A+."),
+        element("small", "", "Danh sách chỉ hiện môn đã qua, có tính GPA và chưa đạt A+."),
       );
       elements.customImprovementCourses.append(empty);
     } else {
@@ -563,7 +563,7 @@
     }
     if (result.nonGpaCourses.length) {
       const nonGpa = element("section", "custom-result-group");
-      nonGpa.append(element("h4", "", "Môn không tính TBC"));
+      nonGpa.append(element("h4", "", "Môn không tính GPA"));
       const list = element("ul", "custom-result-list");
       result.nonGpaCourses.forEach((course) => {
         const item = element("li");
@@ -595,9 +595,9 @@
     state.model.completed.forEach((course) => {
       const row = document.createElement("tr");
       const status = course.excludedFromGpa
-        ? "Không tính TBC"
+        ? "Không tính GPA"
         : domain.isFailedCourse(course)
-          ? "Chưa tích lũy"
+          ? "Chưa qua (F/F+)"
           : "Đã đạt";
       [
         course.courseCode || "—",
@@ -614,7 +614,7 @@
   function assignmentLabel(assignment) {
     if (assignment.type === "improvement") return `Học cải thiện từ ${assignment.fromGrade || formatNumber(assignment.fromPoints, 1)}`;
     if (assignment.type === "retake-failed") return "Học lại môn F/F+";
-    return "Học phần mới";
+    return "Môn mới";
   }
 
   function renderScenarios(scenarios) {
@@ -652,7 +652,7 @@
       result.nonGpaCourses.forEach((course) => {
         const item = element("li", "assignment-item");
         const copy = element("div");
-        copy.append(element("strong", "", course.name), element("small", "", "Không tính TBC · cần đạt"));
+        copy.append(element("strong", "", course.name), element("small", "", "Không tính GPA · cần đạt"));
         item.append(copy, element("span", "target-grade", "Đạt"));
         list.append(item);
       });
@@ -691,7 +691,7 @@
   }
 
   async function importFile(file) {
-    setImportStatus("Đang kiểm tra workbook và chuẩn hóa dữ liệu…");
+    setImportStatus("Đang mở file Excel và chuẩn bị bảng điểm…");
     try {
       const payload = await importer.readWorkbookFile(file);
       loadPayload(payload);
@@ -878,6 +878,7 @@
   }
 
   function initialize() {
+    document.getElementById("copyrightYear").textContent = String(new Date().getFullYear());
     captureElements();
     bindEvents();
     if (root.location.hash.startsWith("#handoff=")) {

@@ -508,7 +508,7 @@
       let reason = "Ngay cả khi mọi ô còn trống đạt A+, các môn đã chọn vẫn chưa đủ để chạm mục tiêu.";
       if (!selectedImpactCount) {
         code = "NO_CUSTOM_COURSES";
-        reason = "Chưa có môn tính TBC hoặc môn học cải thiện nào trong kế hoạch.";
+        reason = "Chưa có môn tính GPA hoặc môn học cải thiện nào trong kế hoạch.";
       } else if (fixedAssignments.length && maximumWithoutLocks + 1e-9 >= target) {
         code = "LOCKED_SCORES_TOO_LOW";
         reason = "Một hoặc nhiều điểm đã khóa quá thấp; nếu để hệ thống tính lại các ô đó thì mục tiêu vẫn có thể đạt.";

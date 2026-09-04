@@ -7,7 +7,7 @@
     <style>
       html, body { margin: 0; min-height: 100%; background: #f8f7fb; }
       iframe { display: block; width: 100%; height: 2200px; border: 0; }
-      html.mobile-preview body { width: 390px; margin-inline: auto; }
+      html.mobile-preview body { width: var(--preview-width, 390px); margin-inline: auto; }
       html.mobile-preview iframe { height: 5200px; }
     </style>
     <script src="qa-payload.js?v=custom-plan"></script>
@@ -16,17 +16,37 @@
         "mobile-preview",
         new URLSearchParams(location.search).has("mobile"),
       );
+      if (new URLSearchParams(location.search).get("width") === "320") {
+        document.documentElement.style.setProperty("--preview-width", "320px");
+      }
     </script>
   </head>
   <body>
-    <iframe id="app" src="../index.html?v=custom-plan" title="ULSA GPA dashboard preview"></iframe>
+    <iframe id="app" src="../index.html?v=cham-gpa" title="Chạm GPA — xem trước bảng điểm"></iframe>
     <script>
       document.getElementById("app").addEventListener("load", (event) => {
         const appWindow = event.currentTarget.contentWindow;
-        appWindow.ULSA_GPA_APP.loadPayload(globalThis.ULSA_QA_PAYLOAD);
+        const payload = structuredClone(globalThis.ULSA_QA_PAYLOAD);
+        const mode = new URLSearchParams(location.search).get("mode");
+        if (mode === "legacy") {
+          payload.source.mode = "legacy";
+          payload.pendingCourses = [];
+          payload.curriculumCourses = [];
+          payload.electiveGroups = [];
+        }
+        if (mode === "complete") {
+          payload.completedCourses = payload.completedCourses.filter((course) => course.courseCode !== "FAIL1");
+          payload.curriculumCourses = payload.curriculumCourses.filter((course) =>
+            payload.completedCourses.some((done) => done.courseCode === course.courseCode));
+          payload.pendingCourses = [];
+          payload.electiveGroups = payload.electiveGroups.filter((group) => group.id === "1");
+        }
+        appWindow.ULSA_GPA_APP.loadPayload(payload);
         const elective = appWindow.document.querySelector('input[data-key="EL4"][data-field="selected"]');
-        elective.checked = true;
-        elective.dispatchEvent(new appWindow.Event("change", { bubbles: true }));
+        if (elective && mode !== "missing") {
+          elective.checked = true;
+          elective.dispatchEvent(new appWindow.Event("change", { bubbles: true }));
+        }
         appWindow.document.getElementById("targetGpa").value = "3.40";
         appWindow.document.getElementById("targetGpa").dispatchEvent(new appWindow.Event("input", { bubbles: true }));
         appWindow.document.getElementById("plannerForm").requestSubmit();
