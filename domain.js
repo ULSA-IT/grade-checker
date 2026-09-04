@@ -75,9 +75,11 @@
     if (!Number.isFinite(score10) || score10 < 4 || score10 > 10) {
       throw new DomainError("INVALID_CUSTOM_SCORE", "Điểm dự kiến phải nằm trong khoảng 4,0 đến 10,0.");
     }
-    if (Math.abs(score10 * 10 - Math.round(score10 * 10)) > 1e-8) {
-      throw new DomainError("INVALID_CUSTOM_SCORE", "Điểm dự kiến chỉ được có một chữ số thập phân.");
+    if ((typeof normalized === "string" && !/^\d+(?:\.\d{0,2})?$/.test(normalized)) ||
+      Math.abs(score10 * 100 - Math.round(score10 * 100)) > 1e-8) {
+      throw new DomainError("INVALID_CUSTOM_SCORE", "Điểm dự kiến chỉ được có tối đa hai chữ số thập phân.");
     }
+    // Compare thresholds directly: 8.49 stays B+, rather than rounding up to A.
     const grade = [...GRADE_SCALE].reverse().find((item) => score10 + 1e-9 >= item.minScore10);
     return { ...grade, score10 };
   }

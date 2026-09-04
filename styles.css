@@ -1157,7 +1157,7 @@ details.course-panel {
 
 .score-editor {
   display: grid;
-  grid-template-columns: minmax(82px, 0.48fr) minmax(0, 1fr);
+  grid-template-columns: minmax(112px, 0.48fr) minmax(0, 1fr);
   align-items: center;
   gap: 3px 10px;
 }
@@ -1180,6 +1180,12 @@ details.course-panel {
   background: #fff;
   font-size: 13px;
   font-weight: 800;
+}
+
+.score-editor input::placeholder {
+  color: var(--ink-500);
+  font-weight: 500;
+  opacity: 1;
 }
 
 .score-editor input[aria-invalid="true"] {
@@ -1870,7 +1876,7 @@ details.course-panel {
   }
 
   .score-editor {
-    grid-template-columns: minmax(95px, 0.4fr) minmax(0, 1fr);
+    grid-template-columns: minmax(112px, 0.4fr) minmax(0, 1fr);
   }
 
   .custom-plan-actions {

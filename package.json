@@ -4,6 +4,6 @@
   "private": true,
   "scripts": {
     "test": "node --test tests",
-    "check": "node --check domain.js && node --check import.js && node --check app.js"
+    "check": "node --check domain.js && node --check import.js && node --check score-input.js && node --check app.js"
   }
 }

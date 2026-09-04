@@ -32,6 +32,7 @@ node --test tests
 - GPA mục tiêu là TBC tích lũy hệ 4.
 - TBC học tập gồm F/F+; TBC tích lũy chỉ gồm học phần đã đạt và có tính TBC.
 - Học cải thiện dùng điểm cao hơn giữa điểm hiện tại và điểm dự kiến.
+- Điểm dự kiến hệ 10 nhận dấu phẩy hoặc dấu chấm, tối đa hai chữ số thập phân. Ô nhập chặn giá trị trên 10; điểm dưới 4 vẫn được cảnh báo và không thể dùng để tính kế hoạch. Khi quy đổi, điểm được so trực tiếp với ngưỡng điểm chữ, không làm tròn lên (ví dụ 8,49 vẫn là B+, từ 8,50 mới là A).
 - Chỉ đánh giá điều kiện học phần trong chương trình đào tạo; không kết luận toàn bộ điều kiện tốt nghiệp.
 - Phiên bản này áp dụng quy tắc từ D17 trở đi và chưa mô phỏng thi lại/đánh giá lại thành phần.
 

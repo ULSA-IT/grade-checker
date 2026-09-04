@@ -259,8 +259,20 @@ test("quy đổi đúng toàn bộ biên điểm hệ 10 của ULSA", () => {
   });
 });
 
-test("chặn điểm hệ 10 ngoài khoảng hoặc có quá một chữ số thập phân", () => {
-  [3.9, 10.1, 8.55, "không phải điểm"].forEach((score) => {
+test("điểm hai chữ số thập phân không bị làm tròn lên ngưỡng điểm chữ", () => {
+  [
+    [4.69, "D"], [5.49, "D+"], [6.19, "C"], [6.99, "C+"],
+    [7.69, "B"], [8.49, "B+"], [9.19, "A"], [9.99, "A+"],
+    ["8,50", "A"], ["8.55", "A"], ["10,00", "A+"],
+  ].forEach(([score, letter]) => {
+    const result = domain.score10ToGrade(score);
+    assert.equal(result.letter, letter);
+    assert.equal(result.score10, Number(String(score).replace(",", ".")));
+  });
+});
+
+test("chặn điểm hệ 10 ngoài khoảng hoặc có quá hai chữ số thập phân", () => {
+  [3.99, 10.01, 10.234, 8.555, "8,555", "8.500", "8e0", "0x8", "không phải điểm", NaN].forEach((score) => {
     assert.throws(
       () => domain.score10ToGrade(score),
       (error) => error.code === "INVALID_CUSTOM_SCORE",
@@ -284,11 +296,12 @@ test("khóa hai môn ở A và tính mức B+ đồng đều cho hai môn còn l
     model,
     domain.createDefaultSelections(model),
     3.5,
-    { futureScores: { NEW1: 8.5, NEW2: 8.5 }, improvements: {} },
+    { futureScores: { NEW1: 8.55, NEW2: 8.51 }, improvements: {} },
   );
 
   assert.equal(result.feasible, true);
   assert.equal(result.fixedAssignments.length, 2);
+  assert.deepEqual(result.fixedAssignments.map((item) => item.score10), [8.55, 8.51]);
   assert.equal(result.suggestedAssignments.length, 2);
   assert.deepEqual(result.suggestedAssignments.map((item) => item.targetGrade), ["B+", "B+"]);
   assert.ok(result.projectedGpa >= 3.5);
@@ -324,14 +337,14 @@ test("học cải thiện phải tăng mức điểm chữ và chỉ cộng ph�
     completedCourses: [grade("IMPROVE", "Môn đang B+", 3, 3.5, "B+")],
     curriculumCourses: [curriculum("IMPROVE", "Môn đang B+", 3, { required: true })],
   }));
-  const config = { improvements: { IMPROVE: { selected: true, score10: 8.4 } } };
+  const config = { improvements: { IMPROVE: { selected: true, score10: 8.49 } } };
 
   assert.throws(
     () => domain.generateCustomPlan(model, {}, 3.6, config),
     (error) => error.code === "IMPROVEMENT_NOT_HIGHER" && /GPA không tăng/.test(error.message),
   );
 
-  config.improvements.IMPROVE.score10 = 8.5;
+  config.improvements.IMPROVE.score10 = "8,50";
   const result = domain.generateCustomPlan(model, {}, 3.6, config);
   assert.equal(result.feasible, true);
   assert.equal(result.projectedCredits, 3);

@@ -28,7 +28,8 @@
   }
 
   function formatScore10(value) {
-    return Number.isFinite(Number(value)) ? Number(value).toFixed(1).replace(".", ",") : "—";
+    const score = Number(String(value).replace(",", "."));
+    return Number.isFinite(score) ? score.toFixed(2).replace(/0$/, "").replace(".", ",") : "—";
   }
 
   function formatDate(value) {
@@ -360,11 +361,11 @@
     const editor = element("label", "score-editor");
     editor.append(element("span", "score-label", "Điểm dự kiến /10"));
     const input = document.createElement("input");
-    input.type = "number";
-    input.min = "4";
-    input.max = "10";
-    input.step = "0.1";
+    // Text + decimal keyboard supports both separators without number spinners
+    // squeezing the placeholder, and lets us reject edits before they appear.
+    input.type = "text";
     input.inputMode = "decimal";
+    input.autocomplete = "off";
     input.placeholder = "Để trống";
     input.disabled = disabled;
     input.dataset.customScore = "true";
@@ -373,6 +374,7 @@
     if (type === "improvement") input.dataset.currentPoints = String(course.grade4);
     input.setAttribute("aria-label", `Điểm dự kiến hệ 10 cho ${course.name}`);
     if (value !== null && value !== undefined && String(value) !== "") input.value = String(value);
+    root.UlsaScoreInput.attach(input);
     const feedback = element("small", "score-conversion", "Để hệ thống tính");
     editor.append(input, feedback);
     setScoreFeedback(input);
@@ -800,7 +802,7 @@
     elements.customPlannerForm.addEventListener("input", (event) => {
       const input = event.target.closest("input[data-custom-score][data-key]");
       if (!input) return;
-      const value = input.value === "" ? null : Number(input.value);
+      const value = input.value === "" ? null : Number(input.value.replace(",", "."));
       if (input.dataset.scoreType === "future") {
         state.customPlan.futureScores[input.dataset.key] = value;
       } else {
