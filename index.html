@@ -9,10 +9,12 @@
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon32.png" />
     <link rel="icon" type="image/svg+xml" href="assets/cham-gpa.svg" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="onboarding.css" />
     <script src="xlsx.full.min.js" defer></script>
     <script src="domain.js" defer></script>
     <script src="import.js" defer></script>
     <script src="score-input.js" defer></script>
+    <script src="connection.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -48,11 +50,19 @@
         <div class="connect-card">
           <div class="step-number">01</div>
           <h2>Kết nối bảng điểm — nhanh nhất</h2>
-          <p>Đăng nhập cổng sinh viên, mở tiện ích <strong>Chạm GPA</strong> và chọn <strong>Phân tích GPA</strong>. Bảng điểm sẽ tự chuyển sang đây.</p>
-          <a class="primary-link" href="https://sinhvien.ulsa.edu.vn/KetQuaHocTap.aspx" target="_blank" rel="noreferrer">
-            Mở cổng sinh viên
-            <span aria-hidden="true">↗</span>
-          </a>
+          <p>Cài tiện ích một lần. Sau đó kết nối bằng phiên đăng nhập ULSA của bạn — không nhập mật khẩu vào Chạm GPA.</p>
+          <div class="connection-panel" data-extension-connection data-state="checking">
+            <div class="connection-status" role="status" aria-live="polite">
+              <strong data-connection-title>Đang kiểm tra tiện ích…</strong>
+              <p data-connection-message>Đang tìm Chạm GPA trong trình duyệt này.</p>
+            </div>
+            <a class="primary-link" data-connection-install href="install.html">Cài tiện ích Chạm GPA</a>
+            <button class="primary-button" data-connection-connect type="button" hidden>Kết nối bảng điểm</button>
+            <button class="connection-retry" data-connection-retry type="button">Đã cài? Kiểm tra lại</button>
+            <a class="connection-help" href="install.html#help">Hướng dẫn cài đặt &amp; xử lý sự cố</a>
+          </div>
+          <p class="mobile-note" data-mobile-note hidden>Cài tiện ích bằng Chrome trên máy tính Windows hoặc Mac. Trên điện thoại, bạn vẫn có thể dùng file Excel bên dưới.</p>
+          <noscript><p>Bật JavaScript để kết nối hoặc phân tích Excel. <a href="install.html">Xem hướng dẫn cài Chạm GPA</a>.</p></noscript>
           <div class="divider"><span>hoặc dùng file dự phòng</span></div>
           <label class="drop-zone" id="dropZone" for="fileUpload">
             <span class="upload-icon" aria-hidden="true">⇧</span>

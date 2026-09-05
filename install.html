@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Cài Chạm GPA trên Chrome Windows hoặc macOS trong 5 bước có minh họa. Không nhập mật khẩu trường vào Chạm GPA." />
+    <meta name="theme-color" content="#5b3fd4" />
+    <title>Cài Chạm GPA — Hướng dẫn 5 bước</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon32.png" />
+    <link rel="icon" type="image/svg+xml" href="assets/cham-gpa.svg" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="onboarding.css" />
+    <script src="connection.js" defer></script>
+    <script src="onboarding.js" defer></script>
+  </head>
+  <body class="install-page">
+    <a class="skip-link" href="#steps">Đi tới hướng dẫn cài đặt</a>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Chạm GPA — Trang chủ">
+        <img class="brand-mark" src="assets/cham-gpa.svg" width="42" height="42" alt="" />
+        <span><strong>Chạm GPA</strong><small>Lập kế hoạch điểm số của bạn</small></span>
+      </a>
+      <a class="text-link" href="./">← Về Chạm GPA</a>
+    </header>
+
+    <main class="container install-main">
+      <section class="install-intro" aria-labelledby="installTitle">
+        <p class="eyebrow">CÀI MỘT LẦN · DÙNG CHO NHỮNG KẾ HOẠCH TIẾP THEO</p>
+        <h1 id="installTitle">Cài Chạm GPA<br /><span>trong 5 bước.</span></h1>
+        <p>Thêm tiện ích vào Chrome để kết nối bảng điểm ULSA với kế hoạch của bạn. Bạn chỉ đăng nhập ở cổng trường, không nhập mật khẩu vào Chạm GPA.</p>
+        <div class="install-intro-bottom">
+          <fieldset class="platform-picker">
+            <legend>Bạn dùng máy tính nào?</legend>
+            <label><input type="radio" name="platform" value="windows" checked /><span>Windows</span></label>
+            <label><input type="radio" name="platform" value="macos" /><span>macOS</span></label>
+          </fieldset>
+          <p class="illustration-note">Hình trong hướng dẫn là minh họa.<br />Giao diện Chrome của bạn có thể khác đôi chút.</p>
+        </div>
+        <p class="mobile-note" data-mobile-note hidden>Bạn đang dùng điện thoại hoặc máy tính bảng. Hãy mở hướng dẫn này bằng Chrome trên máy tính Windows/Mac để cài. <a href="./">Bạn vẫn có thể import Excel trên website.</a></p>
+        <noscript><p>Hướng dẫn bên dưới vẫn đọc được. Bật JavaScript để đổi bộ minh họa Windows/macOS, sao chép địa chỉ và kiểm tra tiện ích.</p></noscript>
+      </section>
+
+      <div class="install-layout">
+        <nav class="install-nav" aria-label="Các bước cài đặt">
+          <p>CHỈ CẦN 5 BƯỚC</p>
+          <a href="#step-1"><span>01</span> Tải tiện ích</a>
+          <a href="#step-2"><span>02</span> Giải nén</a>
+          <a href="#step-3"><span>03</span> Mở Tiện ích</a>
+          <a href="#step-4"><span>04</span> Bật chế độ</a>
+          <a href="#step-5"><span>05</span> Chọn thư mục</a>
+          <a class="install-nav-help" href="#help">Gặp khó khăn?</a>
+        </nav>
+
+        <div class="install-steps" id="steps">
+          <section class="install-step" id="step-1" aria-labelledby="stepTitle1">
+            <div class="install-step-copy">
+              <span class="install-step-number">01 / 05</span>
+              <h2 id="stepTitle1">Tải tiện ích Chạm GPA</h2>
+              <p>Bấm nút bên dưới để tải <strong>ChamGPA.zip</strong>. Đây là bộ cài gọn, không cần tải toàn bộ mã nguồn.</p>
+              <a class="primary-link" href="https://github.com/ULSA-IT/GPA_Prediction_Extension/releases/latest/download/ChamGPA.zip">↓ Tải tiện ích</a>
+              <a class="connection-help" href="https://github.com/ULSA-IT/GPA_Prediction_Extension/releases/latest" target="_blank" rel="noreferrer">Không tải được? Mở trang phát hành ↗</a>
+              <p class="step-hint">Ở trang phát hành, chọn <strong>ChamGPA.zip</strong>, không chọn “Source code”.</p>
+            </div>
+            <figure><img src="assets/onboarding/download.svg" width="480" height="300" alt="Minh họa bộ cài ChamGPA.zip trong danh sách file đã tải." /><figcaption>Minh họa · File cần tải</figcaption></figure>
+          </section>
+
+          <section class="install-step" id="step-2" aria-labelledby="stepTitle2">
+            <div class="install-step-copy">
+              <span class="install-step-number">02 / 05</span>
+              <h2 id="stepTitle2">Giải nén và giữ lại thư mục</h2>
+              <p data-platform="windows">Trong mục Downloads, nhấp chuột phải vào <strong>ChamGPA.zip</strong> → <strong>Giải nén tất cả / Extract All…</strong>. Giải nén rồi chuyển thư mục <strong>ChamGPA</strong> vào Documents.</p>
+              <p data-platform="macos" hidden>Trong Finder → Downloads, nhấp đúp <strong>ChamGPA.zip</strong> để giải nén. Chuyển thư mục <strong>ChamGPA</strong> vừa tạo vào Documents.</p>
+              <p class="step-warning">Giữ thư mục này tại chỗ. Chrome cần các file bên trong để tiện ích hoạt động; đừng xóa hoặc di chuyển sau khi cài.</p>
+            </div>
+            <figure>
+              <img data-platform="windows" src="assets/onboarding/unzip-windows.svg" width="480" height="300" alt="Minh họa Windows: chọn Extract All cho ChamGPA.zip, giữ thư mục ChamGPA trong Documents." loading="lazy" />
+              <img data-platform="macos" src="assets/onboarding/unzip-macos.svg" width="480" height="300" alt="Minh họa macOS: nhấp đúp ChamGPA.zip trong Finder, chuyển thư mục ChamGPA vào Documents." loading="lazy" hidden />
+              <figcaption>Minh họa · Giải nén trước khi cài</figcaption>
+            </figure>
+          </section>
+
+          <section class="install-step" id="step-3" aria-labelledby="stepTitle3">
+            <div class="install-step-copy">
+              <span class="install-step-number">03 / 05</span>
+              <h2 id="stepTitle3">Mở trang Tiện ích Chrome</h2>
+              <p>Sao chép địa chỉ này. Mở tab Chrome mới, dán vào <strong>thanh địa chỉ phía trên</strong> rồi nhấn Enter.</p>
+              <label class="address-label" for="extensionsAddress">Địa chỉ trang Tiện ích</label>
+              <div class="copy-address"><input id="extensionsAddress" value="chrome://extensions" readonly spellcheck="false" /><button class="ghost-button" id="copyAddressButton" type="button">Sao chép</button></div>
+              <p id="copyStatus" class="step-hint" role="status" aria-live="polite">Chrome không cho website mở địa chỉ này trực tiếp.</p>
+              <p class="step-hint" data-platform="windows">Mẹo: Ctrl + L để chọn thanh địa chỉ, rồi Ctrl + V.</p>
+              <p class="step-hint" data-platform="macos" hidden>Mẹo: ⌘ + L để chọn thanh địa chỉ, rồi ⌘ + V.</p>
+            </div>
+            <figure><img src="assets/onboarding/extensions.svg" width="480" height="300" alt="Minh họa dán chrome://extensions vào thanh địa chỉ Chrome, không dán vào ô tìm kiếm trong trang." loading="lazy" /><figcaption>Minh họa · Dán vào thanh địa chỉ</figcaption></figure>
+          </section>
+
+          <section class="install-step" id="step-4" aria-labelledby="stepTitle4">
+            <div class="install-step-copy">
+              <span class="install-step-number">04 / 05</span>
+              <h2 id="stepTitle4">Bật chế độ nhà phát triển</h2>
+              <p>Tìm công tắc <strong>Chế độ dành cho nhà phát triển / Developer mode</strong> ở góc trên bên phải và bật lên.</p>
+              <p class="step-hint">Đây là cách Chrome cho phép cài tiện ích từ một thư mục trên máy. Bạn không cần viết code.</p>
+            </div>
+            <figure><img src="assets/onboarding/developer-mode.svg" width="480" height="300" alt="Minh họa công tắc Developer mode ở góc trên bên phải trang Tiện ích, đang bật." loading="lazy" /><figcaption>Minh họa · Công tắc cần bật</figcaption></figure>
+          </section>
+
+          <section class="install-step" id="step-5" aria-labelledby="stepTitle5">
+            <div class="install-step-copy">
+              <span class="install-step-number">05 / 05</span>
+              <h2 id="stepTitle5">Chọn thư mục Chạm GPA</h2>
+              <p>Bấm <strong>Tải tiện ích đã giải nén / Load unpacked</strong>. Tìm trong Documents và chọn thư mục <strong>ChamGPA</strong>.</p>
+              <p class="step-warning">Chọn đúng thư mục có file <strong>manifest.json</strong> bên trong. Không chọn file ZIP; nếu còn một thư mục ChamGPA lồng bên trong, hãy mở tiếp vào đó.</p>
+              <p class="step-hint">Thấy thẻ “Chạm GPA” trong danh sách tiện ích là đã thêm thành công. Sau đó quay lại trang này để kiểm tra kết nối.</p>
+            </div>
+            <figure>
+              <img data-platform="windows" src="assets/onboarding/load-windows.svg" width="480" height="300" alt="Minh họa Windows: chọn thư mục ChamGPA chứa manifest.json rồi bấm Select Folder." loading="lazy" />
+              <img data-platform="macos" src="assets/onboarding/load-macos.svg" width="480" height="300" alt="Minh họa macOS: chọn thư mục ChamGPA chứa manifest.json rồi bấm Select." loading="lazy" hidden />
+              <figcaption>Minh họa · Chọn thư mục, không chọn file ZIP</figcaption>
+            </figure>
+          </section>
+
+          <section class="install-finish" aria-labelledby="finishTitle">
+            <span class="finish-symbol" aria-hidden="true">✓</span>
+            <h2 id="finishTitle">Cài xong? Kết nối thôi.</h2>
+            <p>Nếu trang này đã mở trước khi cài tiện ích, hãy tải lại trang để Chrome kết nối với Chạm GPA.</p>
+            <div class="connection-panel" data-extension-connection data-state="checking">
+              <div class="connection-status" role="status" aria-live="polite"><strong data-connection-title>Đang kiểm tra tiện ích…</strong><p data-connection-message></p></div>
+              <button class="primary-button" data-connection-refresh type="button">Tải lại trang để kiểm tra tiện ích</button>
+              <button class="connection-retry" data-connection-retry type="button">Kiểm tra lại tiện ích</button>
+              <a class="primary-link" data-connection-home href="./" hidden>Về Chạm GPA để kết nối →</a>
+            </div>
+            <a class="connection-help" href="./">Về trang chính hoặc dùng Excel dự phòng</a>
+          </section>
+
+          <section class="install-help" id="help" aria-labelledby="helpTitle">
+            <p class="eyebrow">KHI BẠN CẦN MỘT CHÚT TRỢ GIÚP</p>
+            <h2 id="helpTitle">Gặp khó khăn?</h2>
+            <details><summary>Chrome báo thiếu manifest hoặc không tải được tiện ích</summary><p>Hãy giải nén trước. Mở thư mục ChamGPA và kiểm tra bên trong có manifest.json, popup.html cùng các file khác. Ở bước 5, chọn chính thư mục này — không chọn ZIP hoặc thư mục cha. Nếu file bị thiếu, tải lại bộ cài từ trang phát hành chính thức.</p></details>
+            <details><summary>Đã cài nhưng website chưa nhận ra</summary><p>Tải lại cả tiện ích trong chrome://extensions và trang Chạm GPA. Kiểm tra tiện ích đang bật, được phép hoạt động trên website Chạm GPA, và cả hai đang ở cùng hồ sơ Chrome. Bản cũ có thể chưa hỗ trợ nhận diện; bạn vẫn dùng nút Phân tích GPA trong popup hoặc cập nhật bản mới. Không dùng chế độ ẩn danh.</p></details>
+            <details><summary>Không có công tắc nhà phát triển hoặc không được phép cài</summary><p>Máy do trường/công ty quản lý có thể bị giới hạn cài tiện ích. Hãy dùng Chrome trên máy cá nhân được phép cài. Không tắt bảo vệ của trình duyệt hoặc tìm cách vượt chính sách máy. Nếu đã có file Excel, bạn vẫn có thể import trên Chạm GPA.</p></details>
+            <details><summary>Kết nối yêu cầu đăng nhập hoặc cổng trường đang lỗi</summary><p>Đăng nhập trực tiếp tại sinhvien.ulsa.edu.vn trong cùng hồ sơ Chrome, quay lại website và bấm Kết nối lại. Chạm GPA không nhận mật khẩu của bạn. Nếu cổng trường đang chậm hoặc bảo trì, thử lại sau; bạn có thể dùng Excel đã tải trước đó.</p></details>
+            <details id="update"><summary>Cập nhật Chạm GPA lên phiên bản mới</summary><p>Bản cài từ ZIP không tự cập nhật. Tải ChamGPA.zip mới ở bước 1 và giải nén riêng. Mở thư mục ChamGPA mới, sao chép toàn bộ file và thư mục con vào đúng thư mục ChamGPA đã cài trước đó, đồng ý thay thế file cũ. Không tạo thêm thư mục ChamGPA lồng bên trong.</p><p>Vào chrome://extensions, bấm biểu tượng tải lại trên thẻ Chạm GPA; sau đó tải lại website Chạm GPA và cổng sinh viên. Kiểm tra số phiên bản trên thẻ tiện ích. Nếu không nhớ thư mục cũ, bạn có thể gỡ Chạm GPA rồi cài lại theo 5 bước trên.</p></details>
+          </section>
+        </div>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div><p class="copyright">© <span id="copyrightYear">2026</span> <a href="https://www.facebook.com/ULSA.IT/" target="_blank" rel="noreferrer">ULSA IT</a> · Dự án cộng đồng dành cho sinh viên</p><p>Không phải sản phẩm chính thức của Trường Đại học Lao động – Xã hội.</p></div>
+      <p class="footer-privacy">Tài khoản và mật khẩu chỉ nhập tại cổng trường.</p>
+    </footer>
+  </body>
+</html>

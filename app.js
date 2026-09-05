@@ -691,6 +691,7 @@
   }
 
   async function importFile(file) {
+    root.chamGpaConnection?.cancel();
     setImportStatus("Đang mở file Excel và chuẩn bị bảng điểm…");
     try {
       const payload = await importer.readWorkbookFile(file);
@@ -701,6 +702,7 @@
   }
 
   function resetData() {
+    root.chamGpaConnection?.cancel();
     state.payload = null;
     state.model = null;
     state.selections = {};
@@ -847,20 +849,6 @@
       }
     });
 
-    root.addEventListener("message", (event) => {
-      if (event.source !== root || event.origin !== root.location.origin || event.data?.source !== "ULSA_GPA_EXTENSION") return;
-      if (event.data.type === "ULSA_GPA_DATA") {
-        try {
-          loadPayload(event.data.payload);
-          root.postMessage({ source: "ULSA_GPA_WEB", type: "ULSA_GPA_IMPORT_ACK" }, root.location.origin);
-        } catch (error) {
-          setImportStatus(error?.message || "Dữ liệu extension không hợp lệ.", true);
-        }
-      }
-      if (event.data.type === "ULSA_GPA_IMPORT_ERROR") {
-        setImportStatus(event.data.message || "Không thể nhận dữ liệu từ extension.", true);
-      }
-    });
   }
 
   function captureElements() {
@@ -881,10 +869,7 @@
     document.getElementById("copyrightYear").textContent = String(new Date().getFullYear());
     captureElements();
     bindEvents();
-    if (root.location.hash.startsWith("#handoff=")) {
-      setImportStatus("Đang nhận dữ liệu dùng một lần từ extension…");
-    }
-    root.postMessage({ source: "ULSA_GPA_WEB", type: "ULSA_GPA_WEB_READY" }, root.location.origin);
+    root.chamGpaConnection = root.ChamGpaConnection?.mount({ onData: loadPayload });
   }
 
   root.ULSA_GPA_APP = { loadPayload };
