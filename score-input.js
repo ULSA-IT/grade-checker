@@ -7,17 +7,21 @@
 
   // Allow incomplete edits (e.g. "1" on the way to "10"). The domain still
   // validates the final lower bound and whether an improvement raises GPA.
-  function isAllowedDraft(value) {
-    return /^\d*(?:[.,]\d{0,2})?$/.test(value) &&
-      (value === "" || value === "." || value === "," || Number(value.replace(",", ".")) <= 10);
+  function isAllowedDraft(value, options = {}) {
+    const max = Number.isFinite(Number(options.max)) ? Number(options.max) : 10;
+    const decimals = Number.isInteger(options.decimals) ? options.decimals : 2;
+    const decimalPattern = decimals > 0 ? `(?:[.,]\\d{0,${decimals}})?` : "";
+    return new RegExp(`^\\d*${decimalPattern}$`).test(value) &&
+      (value === "" || value === "." || value === "," || Number(value.replace(",", ".")) <= max);
   }
 
-  function attach(input) {
-    let previousValue = isAllowedDraft(input.value) ? input.value : "";
+  function attach(input, options = {}) {
+    let previousValue = isAllowedDraft(input.value, options) ? input.value : "";
     let previousStart = previousValue.length;
     let previousEnd = previousValue.length;
 
     input.addEventListener("beforeinput", (event) => {
+      if (isAllowedDraft(input.value, options)) previousValue = input.value;
       previousStart = input.selectionStart;
       previousEnd = input.selectionEnd;
       // Composition, undo and non-cancelable edits are checked by the input
@@ -27,11 +31,11 @@
       if (inserted == null) return;
       const candidate = input.value.slice(0, input.selectionStart) + inserted +
         input.value.slice(input.selectionEnd);
-      if (!isAllowedDraft(candidate)) event.preventDefault();
+      if (!isAllowedDraft(candidate, options)) event.preventDefault();
     });
 
     input.addEventListener("input", (event) => {
-      if (!isAllowedDraft(input.value)) {
+      if (!isAllowedDraft(input.value, options)) {
         input.value = previousValue;
         input.setSelectionRange(previousStart, previousEnd);
         // A rejected edit must not change the stored plan or mark it stale.

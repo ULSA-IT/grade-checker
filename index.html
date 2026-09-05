@@ -142,7 +142,18 @@
               <span class="goal-arrow" aria-hidden="true">→</span>
               <form id="plannerForm" class="goal-target">
                 <label for="targetGpa">GPA mục tiêu</label>
-                <input id="targetGpa" type="number" min="0" max="4" step="0.01" inputmode="decimal" required />
+                <input
+                  id="targetGpa"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  maxlength="4"
+                  placeholder="0–4"
+                  aria-describedby="targetGpaHint targetGpaError"
+                  required
+                />
+                <span class="sr-only" id="targetGpaHint">Nhập GPA hệ 4, tối đa hai chữ số thập phân.</span>
+                <small class="goal-target-error" id="targetGpaError" role="alert" hidden></small>
               </form>
               <div class="planner-selection-overview">
                 <span>Kế hoạch đang chọn</span>
@@ -187,7 +198,7 @@
             </summary>
             <div class="course-panel-body">
               <div class="course-tools">
-                <p>Gồm môn chưa có kết quả và môn đã học nhưng chưa qua. Với mỗi môn, chọn có học và có tính vào GPA hay không.</p>
+                <p class="course-selection-help"><strong>Cách chọn:</strong> bật <b>Học</b> ở môn bạn dự định học, rồi kiểm tra môn đó có được <b>Tính GPA</b> hay không. Danh sách gồm cả môn chưa có kết quả và môn đã học nhưng chưa qua.</p>
                 <div class="filter-group" role="group" aria-label="Lọc môn học">
                   <button class="filter-button is-active" type="button" data-filter="all">Tất cả</button>
                   <button class="filter-button" type="button" data-filter="required">Bắt buộc</button>
@@ -228,7 +239,7 @@
                 <div class="planner-mode-state" id="automaticPlanState" role="status" aria-live="polite">
                   Sẵn sàng tạo phương án theo mục tiêu hiện tại.
                 </div>
-                <button class="primary-button" type="submit" form="plannerForm">Tạo 3 kịch bản</button>
+                <button class="primary-button" id="automaticGenerateButton" type="submit" form="plannerForm">Tạo 3 kịch bản</button>
               </div>
             </section>
 
@@ -282,7 +293,7 @@
                 <div class="custom-plan-state" id="customPlanState" role="status" aria-live="polite">
                   Điểm để trống sẽ do hệ thống tính.
                 </div>
-                <button class="primary-button" type="submit">Tính kế hoạch của tôi</button>
+                <button class="primary-button" id="customCalculateButton" type="submit">Tính kế hoạch của tôi</button>
               </div>
             </form>
 

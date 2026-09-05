@@ -102,3 +102,26 @@ test("fallback không có beforeinput vẫn chặn giá trị sai; xóa và nh�
   assert.equal(input.insert("9,25"), true);
   assert.equal(input.value, "9,25");
 });
+
+test("có thể dùng cùng bộ chặn cho GPA hệ 4", () => {
+  assert.equal(isAllowedDraft("4", { max: 4, decimals: 2 }), true);
+  assert.equal(isAllowedDraft("3,95", { max: 4, decimals: 2 }), true);
+  assert.equal(isAllowedDraft("4.01", { max: 4, decimals: 2 }), false);
+  assert.equal(isAllowedDraft("3.999", { max: 4, decimals: 2 }), false);
+
+  // Attach a standalone mock with GPA-specific options to verify rejected
+  // edits never become visible.
+  const gpaInput = new EventTarget();
+  gpaInput.value = "3.50";
+  gpaInput.selectionStart = 0;
+  gpaInput.selectionEnd = 4;
+  gpaInput.setSelectionRange = (start, end) => {
+    gpaInput.selectionStart = start;
+    gpaInput.selectionEnd = end;
+  };
+  attach(gpaInput, { max: 4, decimals: 2 });
+  const before = new Event("beforeinput", { cancelable: true });
+  Object.assign(before, { inputType: "insertFromPaste", data: "4.01" });
+  assert.equal(gpaInput.dispatchEvent(before), false);
+  assert.equal(gpaInput.value, "3.50");
+});

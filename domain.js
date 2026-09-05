@@ -84,6 +84,36 @@
     return { ...grade, score10 };
   }
 
+  function parseTargetGpa(value, minimum = 0) {
+    const normalized = typeof value === "string" ? value.replace(",", ".").trim() : value;
+    const target = Number(normalized);
+    if (!Number.isFinite(target) || target < 0 || target > 4) {
+      throw new DomainError("INVALID_TARGET", "GPA mục tiêu phải nằm trong khoảng 0 đến 4.");
+    }
+    if ((typeof normalized === "string" && !/^\d+(?:\.\d{0,2})?$/.test(normalized)) ||
+      Math.abs(target * 100 - Math.round(target * 100)) > 1e-8) {
+      throw new DomainError("INVALID_TARGET", "GPA mục tiêu chỉ được có tối đa hai chữ số thập phân.");
+    }
+    const minimumTarget = Number(minimum);
+    if (Number.isFinite(minimumTarget) && target + 1e-9 < minimumTarget) {
+      throw new DomainError(
+        "TARGET_BELOW_CURRENT",
+        `GPA mục tiêu không thể thấp hơn GPA hiện tại (${minimumTarget.toFixed(2)}).`,
+      );
+    }
+    return target;
+  }
+
+  function currentCumulativeGpa(model) {
+    const rawPortalValue = model?.payload?.summary?.cumulativeGpa4;
+    const portalValue = rawPortalValue === null || rawPortalValue === undefined || rawPortalValue === ""
+      ? NaN
+      : Number(typeof rawPortalValue === "string" ? rawPortalValue.replace(",", ".") : rawPortalValue);
+    if (Number.isFinite(portalValue)) return portalValue;
+    const derivedValue = Number(model?.derivedMetrics?.cumulative?.gpa);
+    return Number.isFinite(derivedValue) ? derivedValue : 0;
+  }
+
   function validatePayload(payload) {
     if (payload?.schemaVersion !== 1) {
       throw new DomainError("SCHEMA_INVALID", "Phiên bản dữ liệu không được hỗ trợ.");
@@ -368,10 +398,7 @@
   }
 
   function generateCustomPlan(model, selections, requestedTarget, customPlan = {}) {
-    const target = Number(requestedTarget);
-    if (!Number.isFinite(target) || target < 0 || target > 4) {
-      throw new DomainError("INVALID_TARGET", "GPA mục tiêu phải nằm trong khoảng 0 đến 4.");
-    }
+    const target = parseTargetGpa(requestedTarget, currentCumulativeGpa(model));
 
     const context = preparePlannerContext(model, selections);
     if (!context.denominator) {
@@ -623,10 +650,7 @@
   }
 
   function optimizeScenario(model, selections, requestedTarget, configuration) {
-    const target = Number(requestedTarget);
-    if (!Number.isFinite(target) || target < 0 || target > 4) {
-      throw new DomainError("INVALID_TARGET", "GPA mục tiêu phải nằm trong khoảng 0 đến 4.");
-    }
+    const target = parseTargetGpa(requestedTarget, currentCumulativeGpa(model));
 
     const context = preparePlannerContext(model, selections);
     if (!context.denominator) {
@@ -786,6 +810,7 @@
     isPassedCourse,
     isLikelyNonGpa,
     score10ToGrade,
+    parseTargetGpa,
     validatePayload,
     weightedMetrics,
     buildModel,

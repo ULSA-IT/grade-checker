@@ -24,7 +24,8 @@
   }
 
   function formatNumber(value, digits = 2) {
-    return Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : "—";
+    const number = Number(typeof value === "string" ? value.replace(",", ".") : value);
+    return Number.isFinite(number) ? number.toFixed(digits) : "—";
   }
 
   function formatScore10(value) {
@@ -52,8 +53,35 @@
   }
 
   function currentSummaryValue(name, fallback) {
-    const portalValue = Number(state.payload?.summary?.[name]);
+    const rawValue = state.payload?.summary?.[name];
+    const portalValue = rawValue === null || rawValue === undefined || rawValue === ""
+      ? NaN
+      : Number(typeof rawValue === "string" ? rawValue.replace(",", ".") : rawValue);
     return Number.isFinite(portalValue) ? portalValue : fallback;
+  }
+
+  function validateTargetGpa(options = {}) {
+    const minimum = Number(elements.targetGpa.dataset.minimumGpa || 0);
+    try {
+      domain.parseTargetGpa(elements.targetGpa.value, minimum);
+      elements.targetGpa.setCustomValidity("");
+      elements.targetGpa.removeAttribute("aria-invalid");
+      elements.targetGpaError.hidden = true;
+      elements.targetGpaError.textContent = "";
+      elements.automaticGenerateButton.disabled = false;
+      elements.customCalculateButton.disabled = false;
+      return true;
+    } catch (error) {
+      const message = error?.message || "GPA mục tiêu không hợp lệ.";
+      elements.targetGpa.setCustomValidity(message);
+      elements.targetGpa.setAttribute("aria-invalid", "true");
+      elements.targetGpaError.hidden = false;
+      elements.targetGpaError.textContent = message;
+      elements.automaticGenerateButton.disabled = true;
+      elements.customCalculateButton.disabled = true;
+      if (options.report) elements.targetGpa.reportValidity();
+      return false;
+    }
   }
 
   function loadPayload(payload) {
@@ -107,7 +135,10 @@
     }
 
     const defaultTarget = Math.min(4, Math.max(Number(cumulative) || 0, 2) + 0.1);
+    elements.targetGpa.dataset.minimumGpa = String(Number(cumulative) || 0);
+    elements.targetGpa.placeholder = `${formatNumber(cumulative)}–4`;
     elements.targetGpa.value = defaultTarget.toFixed(2);
+    validateTargetGpa();
     elements.coursePlanningPanel.hidden = model.limitedMode || model.pending.length === 0;
     elements.coursePlanningPanel.open = true;
     elements.scenarioSection.hidden = true;
@@ -287,7 +318,8 @@
     state.model.pending.filter(courseMatchesFilter).forEach((course) => {
       const selection = merged[course.key];
       const row = document.createElement("tr");
-      row.append(element("td"));
+      row.append(element("td", "course-action-cell course-study-cell"));
+      row.cells[0].dataset.label = "Sẽ học";
       row.cells[0].append(createSwitch(
         selection.selected,
         selection.locked,
@@ -303,10 +335,13 @@
       );
       row.append(nameCell);
       const classification = classificationFor(course);
-      const classificationCell = element("td");
+      const classificationCell = element("td", "course-classification");
       classificationCell.append(element("span", classification.className, classification.text));
-      row.append(classificationCell, element("td", "", String(course.credits)));
-      const gpaCell = element("td");
+      const creditsCell = element("td", "course-credits", String(course.credits));
+      creditsCell.dataset.label = "Tín chỉ";
+      row.append(classificationCell, creditsCell);
+      const gpaCell = element("td", "course-action-cell course-gpa-cell");
+      gpaCell.dataset.label = "Tính GPA";
       gpaCell.append(createSwitch(
         selection.countsGpa,
         !selection.selected,
@@ -777,6 +812,7 @@
 
     elements.plannerForm.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (!validateTargetGpa({ report: true })) return;
       if (state.activePlannerTab === "custom") {
         elements.customPlannerForm.requestSubmit();
         return;
@@ -790,7 +826,7 @@
       }
     });
     elements.targetGpa.addEventListener("input", () => {
-      elements.targetGpa.setCustomValidity("");
+      validateTargetGpa();
       markScenariosStale();
       markCustomPlanStale();
     });
@@ -828,6 +864,7 @@
 
     elements.customPlannerForm.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (!validateTargetGpa({ report: true })) return;
       const invalidInput = Array.from(
         elements.customPlannerForm.querySelectorAll("input[data-custom-score]:not(:disabled)"),
       ).find((input) => !setScoreFeedback(input));
@@ -856,10 +893,10 @@
       "landingPanel", "dashboard", "dropZone", "fileUpload", "importStatus", "programName", "dataMeta",
       "replaceDataButton", "modeNotice", "metricWarning", "cumulativeGpa", "academicGpa",
       "accumulatedCredits", "failedCourseCount", "programStatus", "requirementSummary", "groupList",
-      "plannerWorkspace", "plannerCurrentGpa", "plannerForm", "targetGpa", "plannerSelectionSummary",
+      "plannerWorkspace", "plannerCurrentGpa", "plannerForm", "targetGpa", "targetGpaError", "plannerSelectionSummary",
       "plannerTabs", "automaticTab", "customTab", "coursePlanningPanel", "courseSelectionSummary",
-      "pendingCourseRows", "automaticPlanPanel", "automaticPlanState", "scenarioSection", "scenarioGrid",
-      "customPlanPanel", "customPlannerForm", "customFutureCount",
+      "pendingCourseRows", "automaticPlanPanel", "automaticPlanState", "automaticGenerateButton", "scenarioSection", "scenarioGrid",
+      "customPlanPanel", "customPlannerForm", "customCalculateButton", "customFutureCount",
       "customFutureCourses", "improvementPicker", "customImprovementCount", "customImprovementCourses",
       "customPlanError", "customPlanState", "customPlanResult", "gradeDetailCount", "completedCourseRows",
     ].forEach((id) => { elements[id] = document.getElementById(id); });
@@ -868,6 +905,7 @@
   function initialize() {
     document.getElementById("copyrightYear").textContent = String(new Date().getFullYear());
     captureElements();
+    root.UlsaScoreInput.attach(elements.targetGpa, { max: 4, decimals: 2 });
     bindEvents();
     root.chamGpaConnection = root.ChamGpaConnection?.mount({ onData: loadPayload });
   }

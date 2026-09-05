@@ -223,6 +223,28 @@ test("kịch bản cân bằng báo không thể đạt khi mục tiêu vượt 
   assert.ok(result.maximumGpa <= 3.7 + 1e-9);
 });
 
+test("GPA mục tiêu nhận dấu chấm hoặc dấu phẩy và chặn quá 4 hoặc quá hai số lẻ", () => {
+  assert.equal(domain.parseTargetGpa("3,75"), 3.75);
+  assert.equal(domain.parseTargetGpa("4.00"), 4);
+  assert.throws(() => domain.parseTargetGpa("4.01"), { code: "INVALID_TARGET" });
+  assert.throws(() => domain.parseTargetGpa("3.999"), { code: "INVALID_TARGET" });
+  assert.throws(() => domain.parseTargetGpa("2.30", 2.5), { code: "TARGET_BELOW_CURRENT" });
+  assert.equal(domain.parseTargetGpa("2.50", 2.5), 2.5);
+});
+
+test("bộ lập kế hoạch không nhận GPA mục tiêu thấp hơn GPA hiện tại", () => {
+  const model = domain.buildModel(makePayload({
+    summary: { cumulativeGpa4: 2.5 },
+    completedCourses: [grade("BASE", "Môn nền", 3, 2.5, "C+")],
+    curriculumCourses: [curriculum("BASE", "Môn nền", 3, { required: true })],
+  }));
+
+  assert.throws(
+    () => domain.generateScenarios(model, {}, "2.30"),
+    { code: "TARGET_BELOW_CURRENT" },
+  );
+});
+
 test("môn không tính TBC không làm thay đổi mẫu số GPA dự kiến", () => {
   const payload = makePayload({
     completedCourses: [grade("BASE", "Môn nền", 3, 3, "B")],
