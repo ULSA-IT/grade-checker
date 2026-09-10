@@ -4,6 +4,6 @@
   "private": true,
   "scripts": {
     "test": "node scripts/test.cjs",
-    "check": "node --check domain.js && node --check import.js && node --check score-input.js && node --check app.js && node --check connection.js && node --check onboarding.js"
+    "check": "node --check domain.js && node --check import.js && node --check score-input.js && node --check demo-data.js && node --check app.js && node --check connection.js && node --check onboarding.js && node --check product-onboarding.js"
   }
 }

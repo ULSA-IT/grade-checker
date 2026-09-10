@@ -12,6 +12,7 @@
     customResultDirty: false,
     activePlannerTab: "automatic",
     automaticResultDirty: false,
+    dataMode: "live",
   };
 
   const elements = {};
@@ -44,6 +45,36 @@
     elements.importStatus.hidden = false;
     elements.importStatus.classList.toggle("is-error", error);
     elements.importStatus.textContent = message;
+  }
+
+  function emitAppEvent(name, detail = {}) {
+    document.dispatchEvent(new CustomEvent(`chamgpa:${name}`, { detail }));
+  }
+
+  function plannerProgressDetail(reason = "render") {
+    if (!state.model) return { reason, coursesValid: false, targetValid: false };
+    const merged = domain.mergeSelections(state.model, state.selections);
+    const hasCoursePlanning = !state.model.limitedMode && state.model.pending.length > 0;
+    const coursesValid = !hasCoursePlanning || state.model.pending
+      .filter((course) => course.required)
+      .every((course) => merged[course.key]?.selected);
+    let targetValid = false;
+    try {
+      domain.parseTargetGpa(
+        elements.targetGpa.value,
+        Number(elements.targetGpa.dataset.minimumGpa || 0),
+      );
+      targetValid = true;
+    } catch (_error) {
+      targetValid = false;
+    }
+    return {
+      reason,
+      coursesValid,
+      targetValid,
+      limitedMode: state.model.limitedMode,
+      hasCoursePlanning,
+    };
   }
 
   function clearHandoffHash() {
@@ -84,7 +115,7 @@
     }
   }
 
-  function loadPayload(payload) {
+  function loadPayload(payload, options = {}) {
     domain.validatePayload(payload);
     state.payload = payload;
     state.model = domain.buildModel(payload);
@@ -94,6 +125,7 @@
     state.customResultDirty = false;
     state.activePlannerTab = "automatic";
     state.automaticResultDirty = false;
+    state.dataMode = options.mode === "demo" ? "demo" : "live";
     clearHandoffHash();
     renderDashboard();
   }
@@ -108,8 +140,12 @@
 
     elements.landingPanel.hidden = true;
     elements.dashboard.hidden = false;
+    elements.headerHelpButton.hidden = false;
+    elements.demoBanner.hidden = state.dataMode !== "demo";
     elements.programName.textContent = state.payload.source?.programName || "Chương trình đào tạo hiện tại";
-    elements.dataMeta.textContent = `Bảng điểm cập nhật lúc ${formatDate(state.payload.fetchedAt)} · Không lưu trên máy chủ`;
+    elements.dataMeta.textContent = state.dataMode === "demo"
+      ? "Dữ liệu minh họa dành cho việc khám phá Chạm GPA · Không phải bảng điểm thật"
+      : `Bảng điểm cập nhật lúc ${formatDate(state.payload.fetchedAt)} · Không lưu trên máy chủ`;
     elements.cumulativeGpa.textContent = formatNumber(cumulative);
     elements.plannerCurrentGpa.textContent = formatNumber(cumulative);
     elements.academicGpa.textContent = formatNumber(academic);
@@ -158,6 +194,14 @@
     renderCompletedCourses();
     setActivePlannerTab("automatic");
     root.scrollTo({ top: 0, behavior: "smooth" });
+    root.requestAnimationFrame(() => {
+      emitAppEvent("data-ready", {
+        demo: state.dataMode === "demo",
+        limitedMode: state.model.limitedMode,
+        hasCoursePlanning: !elements.coursePlanningPanel.hidden,
+      });
+      emitAppEvent("planner-progress", plannerProgressDetail("render"));
+    });
   }
 
   function renderRequirements() {
@@ -305,6 +349,7 @@
     });
     elements.automaticPlanPanel.hidden = activeTab !== "automatic";
     elements.customPlanPanel.hidden = activeTab !== "custom";
+    emitAppEvent("tab-changed", { tab: activeTab });
   }
 
   function collapseCoursePlanning() {
@@ -545,6 +590,8 @@
     elements.customPlanError.hidden = true;
     state.customResultDirty = false;
     collapseCoursePlanning();
+    emitAppEvent("plan-generated", { mode: "custom", feasible: Boolean(result.feasible) });
+    emitAppEvent("planner-progress", plannerProgressDetail("plan"));
 
     if (!result.feasible) {
       const banner = element("div", "custom-result-banner is-error");
@@ -713,6 +760,8 @@
     elements.automaticPlanState.className = "planner-mode-state is-success";
     elements.automaticPlanState.textContent = `Đã tính theo GPA mục tiêu ${formatNumber(elements.targetGpa.value)}.`;
     collapseCoursePlanning();
+    emitAppEvent("plan-generated", { mode: "automatic", feasible: scenarios.some((scenario) => scenario.result.feasible) });
+    emitAppEvent("planner-progress", plannerProgressDetail("plan"));
     elements.scenarioSection.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -736,7 +785,7 @@
     }
   }
 
-  function resetData() {
+  function resetData(options = {}) {
     root.chamGpaConnection?.cancel();
     state.payload = null;
     state.model = null;
@@ -745,12 +794,33 @@
     state.customResultDirty = false;
     state.activePlannerTab = "automatic";
     state.automaticResultDirty = false;
+    state.dataMode = "live";
     elements.fileUpload.value = "";
     elements.dashboard.hidden = true;
     elements.landingPanel.hidden = false;
+    elements.headerHelpButton.hidden = true;
+    elements.demoBanner.hidden = true;
     elements.importStatus.hidden = true;
     clearHandoffHash();
+    emitAppEvent("data-reset");
     root.scrollTo({ top: 0, behavior: "smooth" });
+    if (options.focusConnection === true) {
+      root.requestAnimationFrame(() => {
+        document.querySelector(
+          "[data-connection-connect]:not([hidden]), [data-connection-install]:not([hidden])",
+        )?.focus();
+      });
+    }
+  }
+
+  function loadDemo() {
+    root.chamGpaConnection?.cancel();
+    const payload = root.ChamGpaDemo?.createPayload();
+    if (!payload) {
+      setImportStatus("Không thể mở dữ liệu minh họa. Hãy tải lại trang rồi thử lại.", true);
+      return;
+    }
+    loadPayload(payload, { mode: "demo" });
   }
 
   function bindEvents() {
@@ -766,6 +836,9 @@
       importFile(event.dataTransfer?.files?.[0]);
     });
     elements.replaceDataButton.addEventListener("click", resetData);
+    elements.demoButton.addEventListener("click", loadDemo);
+    elements.connectOwnDataButton.addEventListener("click", () => resetData({ focusConnection: true }));
+    elements.exitDemoButton.addEventListener("click", resetData);
 
     elements.pendingCourseRows.addEventListener("change", (event) => {
       const input = event.target.closest("input[data-field][data-key]");
@@ -779,6 +852,7 @@
       renderCustomPlanner();
       markScenariosStale();
       markCustomPlanStale();
+      emitAppEvent("planner-progress", plannerProgressDetail("courses"));
     });
 
     document.querySelectorAll(".filter-button").forEach((button) => {
@@ -829,6 +903,7 @@
       validateTargetGpa();
       markScenariosStale();
       markCustomPlanStale();
+      emitAppEvent("planner-progress", plannerProgressDetail("target"));
     });
     elements.targetGpa.addEventListener("keydown", (event) => {
       if (event.key !== "Enter") return;
@@ -891,7 +966,8 @@
   function captureElements() {
     [
       "landingPanel", "dashboard", "dropZone", "fileUpload", "importStatus", "programName", "dataMeta",
-      "replaceDataButton", "modeNotice", "metricWarning", "cumulativeGpa", "academicGpa",
+      "replaceDataButton", "demoButton", "demoBanner", "connectOwnDataButton", "exitDemoButton", "headerHelpButton",
+      "modeNotice", "metricWarning", "cumulativeGpa", "academicGpa",
       "accumulatedCredits", "failedCourseCount", "programStatus", "requirementSummary", "groupList",
       "plannerWorkspace", "plannerCurrentGpa", "plannerForm", "targetGpa", "targetGpaError", "plannerSelectionSummary",
       "plannerTabs", "automaticTab", "customTab", "coursePlanningPanel", "courseSelectionSummary",

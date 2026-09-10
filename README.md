@@ -13,6 +13,8 @@ Dự án cộng đồng của **ULSA IT**, không phải sản phẩm chính th�
 
 Không cần nhập mật khẩu vào Chạm GPA. Luồng popup cũ (**Phân tích GPA**) vẫn mở tab kế hoạch riêng và tiếp tục tương thích.
 
+Nếu chưa muốn cài tiện ích, chọn **Xem thử với dữ liệu mẫu**. Chế độ này dùng fixture D17 hoàn toàn giả nhưng vẫn chạy qua đúng engine GPA và luồng lập kế hoạch thật.
+
 Nếu bridge không hoạt động, dùng extension xuất một file `diem_ca_nhan.xlsx` rồi nhập file đó tại website. File 6 cột từ extension cũ vẫn đọc được nhưng chỉ có chế độ GPA giới hạn.
 
 ## Chạy cục bộ
@@ -50,15 +52,19 @@ Trước khi deploy onboarding, publish bộ cài extension 2.1.0 đã kiểm tr
 ## Onboarding và nhận diện tiện ích
 
 - `install.html`: trang riêng có 5 bước, bộ chọn Windows/macOS, hình SVG đóng gói tại `assets/onboarding/`, hướng dẫn cập nhật và xử lý sự cố. Đây là hình minh họa, không phải ảnh chụp thật.
+- `product-onboarding.js`: lời mời hướng dẫn lần đầu, tour 5 bước, mini-tour cho kế hoạch tùy chỉnh và checklist tiến độ trong tab hiện tại.
+- `demo-data.js`: dữ liệu D17 giả dùng cho bản dùng thử; không chứa thông tin của sinh viên thật.
 - `connection.js`: probe bằng request ID, hỏi phiên bản/capability; chỉ nút kết nối mới yêu cầu lấy điểm. Không nhận được phản hồi chỉ có nghĩa chưa kết nối được, không chứng minh tiện ích chưa được cài.
 - Trạng thái hết phiên yêu cầu sinh viên đăng nhập ở cổng trường rồi quay lại; không tự theo dõi tài khoản hay đọc mật khẩu.
 - Response quá hạn/sai request ID bị bỏ qua. Import Excel hủy yêu cầu đang chờ để dữ liệu đến muộn không ghi đè file sinh viên vừa chọn.
 - `chrome://extensions` chỉ có nút sao chép vì không mở trực tiếp được bằng liên kết từ website. Khi clipboard bị từ chối, ô địa chỉ vẫn chọn và sao chép thủ công được.
 - Điện thoại có thể import Excel nhưng cần máy tính để cài tiện ích. Chrome trên Windows/macOS là phạm vi hướng dẫn; không hứa hỗ trợ cài trên trình duyệt di động.
-- Trạng thái onboarding, điểm và cấu hình kế hoạch không được ghi vào localStorage, database hoặc backend.
+- Bảng điểm, GPA, tên môn và cấu hình kế hoạch không được ghi vào localStorage, database hoặc backend. LocalStorage chỉ giữ ba cờ giao diện `promptSeen`, `tourCompleted` và `customTipSeen` dưới khóa version hóa `cham-gpa:onboarding:v1`.
+
+Brief và lời thoại đầy đủ để dựng video nằm tại [`docs/video-tutorial.md`](docs/video-tutorial.md). Chỉ thêm nút xem video lên production sau khi đã có URL YouTube thật.
 
 `npm run check` kiểm tra cú pháp mọi script ứng dụng, bao gồm onboarding và connection. Test browser bằng dữ liệu mẫu không thay thế nghiệm thu với tài khoản trường thật hoặc máy Mac thật. Bridge production chỉ cho origin/path GitHub Pages: preview localhost không nhận được extension là hành vi dự kiến, không nới quyền cho localhost để kiểm thử.
 
-QA trình duyệt tùy chọn: `node scripts/qa-browser.cjs` khi môi trường phát triển đã có Playwright, Chrome, Chromium dành cho kiểm thử và PowerShell 7. Hai repo phải nằm cạnh nhau với tên hiện tại. Script mở hồ sơ thử riêng, chặn request ngoài các URL fixture, đóng gói/cài ZIP rồi kiểm tra nối bảng điểm giả lập; không dùng hồ sơ hoặc tài khoản Chrome cá nhân. Có thể cấu hình đường dẫn thư viện qua `NODE_PATH`, trình duyệt qua `PLAYWRIGHT_BROWSERS_PATH`, PowerShell qua `CHAM_PWSH`. Ảnh kết quả và hồ sơ thử nằm trong `.qa/`, không đưa lên GitHub.
+QA trình duyệt tùy chọn: `node scripts/qa-browser.cjs` khi môi trường phát triển đã có Playwright, Chrome, Chromium dành cho kiểm thử và PowerShell 7. Hai repo phải nằm cạnh nhau với tên hiện tại. Script mở hồ sơ thử riêng, chặn request ngoài các URL fixture, đóng gói/cài ZIP rồi kiểm tra nối bảng điểm giả lập; không dùng hồ sơ hoặc tài khoản Chrome cá nhân. Có thể cấu hình đường dẫn thư viện qua `NODE_PATH`, trình duyệt qua `PLAYWRIGHT_BROWSERS_PATH`, PowerShell qua `CHAM_PWSH` và kênh trình duyệt extension qua `CHAM_QA_EXTENSION_CHANNEL`. Đặt `CHAM_SKIP_EXTENSION_QA=1` khi chỉ cần kiểm tra giao diện web. Ảnh kết quả và hồ sơ thử nằm trong `.qa/`, không đưa lên GitHub.
 
 Logo SVG và favicon nằm trong `assets/`, được đóng gói cục bộ và dùng chung nhận diện với tiện ích Chạm GPA. Thay đổi câu chữ không đổi khóa dữ liệu, tên sheet/cột Excel hay cách tính GPA, nên file dự phòng cũ vẫn được hỗ trợ.
